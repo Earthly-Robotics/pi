@@ -1,47 +1,65 @@
+import cv2
 import cv2 as cv
 import numpy as np
-from Camera import Camera
-from WheelsController import WheelsController
+from Components.Camera import Camera
+from ComponentControllers.WheelsController import WheelsController
 
 
 class VisionController:
     MAX_SPEED = 0.1
+    DEBUG = False
 
     cam = None
     wheels_controller = None
 
-    blue = np.uint8([[[255, 0, 0]]])
-    hsv_blue = cv.cvtColor(blue, cv.COLOR_BGR2HSV)
-    lower_limit = np.array([100, 150, 0], np.uint8)
-    upper_limit = np.array([140, 255, 255], np.uint8)
+    lower_area = 100
+    upper_area = 800
+    lower_shape = 5
+    upper_shape = 14
+
+    blue_low = np.uint8([[[0, 33, 86]]])
+    blue_high = np.uint8([[[1, 149, 255]]])
+    hsv_blue_low = cv.cvtColor(blue_low, cv.COLOR_RGB2HSV)
+    hsv_blue_high = cv.cvtColor(blue_high, cv.COLOR_RGB2HSV)
+    lower_blue_low = hsv_blue_low[0][0][0] - 10, 100, 100
+    upper_blue_low = hsv_blue_low[0][0][0] + 10, 255, 255
+    lower_blue_low = np.array(lower_blue_low)
+    upper_blue_low = np.array(upper_blue_low)
+    lower_blue_high = hsv_blue_high[0][0][0] - 10, 150, 150
+    upper_blue_high = hsv_blue_high[0][0][0] + 10, 255, 255
+    lower_blue_high = np.array(lower_blue_high)
+    upper_blue_high = np.array(upper_blue_high)
 
     error = 0
     cam_half_width = 0
 
-    def __init__(self, robot, time_step):
-        self.cam = Camera(robot, time_step)
-        self.wheels_controller = WheelsController(robot)
+    def __init__(self):
+        self.cam = Camera()
+        self.wheels_controller = WheelsController()
         self.cam_half_width = self.cam.get_width() / 2
 
-    def get_image_from_camera(self):
-        image = self.cam.get_image_array_from_camera()
-        image = np.asarray(image, dtype=np.uint8)
-        image = cv.cvtColor(image, cv.COLOR_BGRA2RGB)
-        image = cv.rotate(image, cv.ROTATE_90_CLOCKWISE)
-        return cv.flip(image, 1)
-
     def track_blue_cube(self):
-        img = self.get_image_from_camera()
-        img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-        mask = cv.inRange(img, self.lower_limit, self.upper_limit)
+        img = self.cam.get_image_array_from_camera()
+        hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        lower_mask = cv.inRange(hsv, self.lower_blue_low, self.upper_blue_low)
+        upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
+        mask = lower_mask | upper_mask
+        kernel = np.ones((9, 9), np.uint8)
+        mask = cv2.erode(mask, kernel)
         contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        if len(contours) > 0:
-            largest_contour = max(contours, key=cv.contourArea)
-            largest_contour_center = cv.moments(largest_contour)
-
-            if largest_contour_center['m00'] > 0:
-                center_x = int(largest_contour_center['m10'] / largest_contour_center['m00'])
-                self.error = self.cam_half_width - center_x
+        for cnt in contours:
+            area = cv.contourArea(cnt)
+            if self.lower_area < area < self.upper_area:
+                approx = cv.approxPolyDP(cnt, 0.01 * cv.arcLength(cnt, True), False)
+                if self.lower_shape < len(approx) < self.upper_shape:
+                    if self.DEBUG:
+                        cv.drawContours(img, [cnt], -1, (0, 255, 255), 2)
+                    m = cv.moments(cnt)
+                    center_x = int(m["m10"] / m["m00"])
+                    self.error = self.cam_half_width - center_x
+        if self.DEBUG:
+            cv.imshow('result', img)
+            cv.imshow('mask', mask)
         self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
         self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
 

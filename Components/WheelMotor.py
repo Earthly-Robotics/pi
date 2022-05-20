@@ -1,8 +1,8 @@
 class WheelMotor:
     motor = None
 
-    def __init__(self, robot, name):
-        self.motor = robot.getDevice(name)
+    def __init__(self):
+        self.motor = None
 
     def set_position(self, position):
         if self.motor is not None:
