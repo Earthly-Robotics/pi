@@ -1,5 +1,7 @@
+from Logger.ILogger import ILogger
 
 
+class ConsoleLogger(ILogger):
 
-class ConsoleLogger():
-    print("")
+    def log(self, string):
+        print(string)
