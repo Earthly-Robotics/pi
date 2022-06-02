@@ -23,6 +23,7 @@ class NetworkController:
         self.port = int(self.params['port'])
         self.buffer_size = 1024
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.profile = 0
 
     def setup_server(self):
         """
@@ -64,7 +65,27 @@ class NetworkController:
             case "LeftJoystick":
                 x = message["x"]
                 y = message["y"]
-                self.logger.log("x : {}, y : {}".format(x, y))
+                p = message["p"]
+                if p != self.profile:
+                    self.profile = p
+                self.logger.log("LeftJoystick: x : {}, y : {}".format(x, y))
+            case "RightJoystick":
+                x = message["x"]
+                y = message["Y"]
+                p = message["p"]
+                if p != self.profile:
+                    self.profile = p
+                self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
+            case "ProfileButton":
+                p = message["p"]
+                self.profile = p
+                print()
+            case "EmergencyButton":
+                print()
+            case "RightJoystickButton":
+                print()
+            case "LeftJoystickButton":
+                print()
             case "StartLineDancing":
                 self.logger.log("Start Line Dancing")
             case _:

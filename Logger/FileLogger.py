@@ -11,6 +11,3 @@ class FileLogger(ILogger):
         minutes = dt.minute
         with open("./Logs/{}-{}.log".format(date, hour), "a") as f:
             f.write(("\n" + "{}: " + string).format(minutes))
-
-
-
