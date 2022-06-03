@@ -62,3 +62,7 @@ class VisionController:
         self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
         self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
 
+    def get_camera_feed(self):
+        img = self.cam.get_image()
+        cv.imshow('result', img)
+
