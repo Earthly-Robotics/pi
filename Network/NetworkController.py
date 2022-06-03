@@ -5,11 +5,12 @@ import json
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 from ComponentControllers.WheelsController import WheelsController
-
+from ComponentControllers.VisionController import VisionController
+import cv2 as cv
 
 class NetworkController:
 
-    def __init__(self):
+    def __init__(self, vision_controller=VisionController()):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -20,6 +21,7 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
+        self.vision_controller = vision_controller
         self.wheels_controller = WheelsController()
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
@@ -98,8 +100,14 @@ class NetworkController:
                 print()
             case "StartLineDancing":
                 self.logger.log("Start Line Dancing")
+            case "CF":
+                self.send_camera_feed(self.vision_controller.get_camera_feed())
             case _:
                 self.logger.log("Not an existing MessageType")
 
     def send_message(self, bytes_to_send, address):
         self.udp_server_socket.sendto(bytes_to_send, address)
+
+    def send_camera_feed(self, frame, address):
+        _, send_data = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
+        self.udp_server_socket.sendto(send_data, address)
