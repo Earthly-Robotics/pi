@@ -7,7 +7,7 @@ class Camera:
     def __init__(self):
         self.camera = cv.VideoCapture(0)
 
-    def get_image_array_from_camera(self):
+    def get_image(self):
         if self.camera is not None:
             ret, frame = self.camera.read()
             return frame

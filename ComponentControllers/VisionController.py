@@ -39,7 +39,7 @@ class VisionController:
         self.cam_half_width = self.cam.get_width() / 2
 
     def track_blue_cube(self):
-        img = self.cam.get_image_array_from_camera()
+        img = self.cam.get_image()
         hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
         lower_mask = cv.inRange(hsv, self.lower_blue_low, self.upper_blue_low)
         upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
