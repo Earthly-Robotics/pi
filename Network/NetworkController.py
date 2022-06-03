@@ -4,6 +4,7 @@ import socket
 import json
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
+from ComponentControllers.WheelsController import WheelsController
 
 
 class NetworkController:
@@ -19,11 +20,13 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
+        self.wheels_controller = WheelsController()
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
         self.buffer_size = 1024
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
+
 
     def setup_server(self):
         """
@@ -64,6 +67,7 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
+                self.wheels_controller.move_logic(x, y)
                 self.logger.log("LeftJoystick: x : {}, y : {}".format(x, y))
                 msg_from_server = "Data LeftJoystick received"
                 bytes_to_send = str.encode(msg_from_server)

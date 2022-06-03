@@ -1,38 +1,42 @@
-from WheelMotor import *
+from Components.WheelMotor import WheelMotor
 
 
 class WheelsController:
-    def move_logic(self, cmd):
+
+    def move_logic(self, x ,y):
 
         motor_left = WheelMotor(19, 16, 13)
         motor_right = WheelMotor(9, 10, 14)
 
+        if 400 < x < 500 and 400 < y < 500:
+            motor_left.move(0)
+            motor_right.move(0)
         # forwards
-        if cmd.joystick_position_y == 1 and cmd.joystick_position_x < 1010 and cmd.joystick_position_x > 100:
+        if y == 1 and x < 1010 and x > 100:
             motor_left.move(0.5)
             motor_right.move(0.5)
             print("forwards")
 
         # backwards
-        if cmd.joystick_position_y > 1010 and cmd.joystick_position_x < 1010 and cmd.joystick_position_x > 100:
+        if y > 1010 and x < 1010 and x > 100:
             motor_left.move(0.5)
             motor_right.move(0.25)
             print("backwards")
 
         # left
-        if cmd.joystick_position_x == 1 and cmd.joystick_position_y < 1010 and cmd.joystick_position_y > 100:
+        if x == 1 and y < 1010 and y > 100:
             motor_left.move(0.5)
             motor_right.move(0.5)
             print("left")
 
         # right
-        if cmd.joystick_position_x > 1010 and cmd.joystick_position_y < 1010 and cmd.joystick_position_y > 100:
+        if x > 1010 and y < 1010 and y > 100:
             motor_left.move(0.5)
             motor_right.move(0.5)
             print("right")
 
         # top-right
-        if cmd.joystick_position_x > 1010 and cmd.joystick_position_y == 1:
+        if x > 1010 and y == 1:
             print("top-right")
             # motor_left.move(0.2)
             # motor_left.move(0.4)
@@ -54,19 +58,19 @@ class WheelsController:
             motor_right.move(0.25)
 
         # top-left
-        if cmd.joystick_position_x == 1 and cmd.joystick_position_y == 1:
+        if x == 1 and y == 1:
             motor_left.move(0.25)
             motor_right.move(0.5)
             print("top-left")
 
         # bottom-right
-        if cmd.joystick_position_x > 1010 and cmd.joystick_position_y > 1010:
+        if x > 1010 and y > 1010:
             motor_left.move(0.25)
             motor_right.move(0.5)
             print("bottom-right")
 
         # bottom-left
-        if cmd.joystick_position_x == 1 and cmd.joystick_position_y > 1010:
+        if x == 1 and y > 1010:
             motor_left.move(0.5)
             motor_right.move(0.25)
             print("bottom-left")
