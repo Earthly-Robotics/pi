@@ -1,5 +1,5 @@
 import platform
-from ConfigReader import config
+from Network.ConfigReader import config
 import socket
 import json
 from Logger.ConsoleLogger import ConsoleLogger
@@ -39,11 +39,14 @@ class NetworkController:
         Starts listening for messages on the socket.
         :return:
         """
+        print(self.ip_address)
+        print(self.port)
         self.logger.log("Server started listening...")
         while True:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
+            self.client_address = address
 
             try:
                 message = json.loads(message)
@@ -53,38 +56,41 @@ class NetworkController:
                 bytes_to_send = str.encode("Message wasn't a JSON string")
                 self.send_message(bytes_to_send, address)
 
-            msg_from_server = "Message received"
-
-            bytes_to_send = str.encode(msg_from_server)
-
-            # Sending a reply to client
-            self.send_message(bytes_to_send, address)
-
     def __handle_message(self, message):
-        match (message["MessageType"]):
-            case "LeftJoystick":
+        match (message["MT"]):
+            case "LJ":
                 x = message["x"]
                 y = message["y"]
                 p = message["p"]
-                if p != self.profile:
+                if self.profile != p:
                     self.profile = p
                 self.logger.log("LeftJoystick: x : {}, y : {}".format(x, y))
-            case "RightJoystick":
+                msg_from_server = "Data LeftJoystick received"
+                bytes_to_send = str.encode(msg_from_server)
+                self.send_message(bytes_to_send, self.client_address)
+            case "RJ":
                 x = message["x"]
                 y = message["Y"]
                 p = message["p"]
-                if p != self.profile:
+                if self.profile != p:
                     self.profile = p
                 self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
-            case "ProfileButton":
+                msg_from_server = "Data RightJoystick received"
+                bytes_to_send = str.encode(msg_from_server)
+                self.send_message(bytes_to_send, self.client_address)
+            case "PB":
                 p = message["p"]
                 self.profile = p
+                msg_from_server = "Profile Button received"
+                bytes_to_send = str.encode(msg_from_server)
+                self.send_message(bytes_to_send, self.client_address)
+            case "VB":
+                msg_from_server = "Variable Button received"
+                bytes_to_send = str.encode(msg_from_server)
+                self.send_message(bytes_to_send, self.client_address)
+            case "RJB":
                 print()
-            case "EmergencyButton":
-                print()
-            case "RightJoystickButton":
-                print()
-            case "LeftJoystickButton":
+            case "LJB":
                 print()
             case "StartLineDancing":
                 self.logger.log("Start Line Dancing")
