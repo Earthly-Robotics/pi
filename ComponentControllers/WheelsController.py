@@ -3,7 +3,7 @@ from Components.WheelMotor import WheelMotor
 
 class WheelsController:
 
-    def move_logic(self, x, y):
+     def move_wheels(self, x, y):
 
         motor_left = WheelMotor(19, 16, 13)
         motor_right = WheelMotor(9, 10, 14)
