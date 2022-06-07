@@ -10,30 +10,29 @@ class WheelsController:
         max_mid = 500
         min_mid = 400
 
-
         if min_mid < x < max_mid and min_mid < y < max_mid:
             motor_left.move(0)
             motor_right.move(0)
         # forwards
-        if y > max_mid and min_mid < x < max_mid:
+        if y > max_mid > x > min_mid:
             motor_left.move(0.5)
             motor_right.move(0.5)
             print("forwards")
 
         # backwards
-        if y < min_mid and min_mid < x < max_mid:
+        if y < min_mid < x < max_mid:
             motor_left.move(0.5)
             motor_right.move(0.25)
             print("backwards")
 
         # left
-        if x < min_mid and min_mid < y < max_mid:
+        if x < min_mid < y < max_mid:
             motor_left.move(0.5)
             motor_right.move(0.5)
             print("left")
 
         # right
-        if x > max_mid and min_mid < y < max_mid:
+        if x > max_mid > y > min_mid:
             motor_left.move(0.5)
             motor_right.move(0.5)
             print("right")

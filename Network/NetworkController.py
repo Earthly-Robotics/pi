@@ -29,7 +29,6 @@ class NetworkController:
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
 
-
     def setup_server(self):
         """
         Starts the server
@@ -51,6 +50,7 @@ class NetworkController:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
+
             self.client_address = address
 
             try:
