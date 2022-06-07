@@ -1,4 +1,3 @@
-import cv2
 import cv2 as cv
 import numpy as np
 from Components.Camera import Camera
@@ -45,7 +44,7 @@ class VisionController:
         upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
         mask = lower_mask | upper_mask
         kernel = np.ones((9, 9), np.uint8)
-        mask = cv2.erode(mask, kernel)
+        mask = cv.erode(mask, kernel)
         contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         for cnt in contours:
             area = cv.contourArea(cnt)
@@ -62,4 +61,8 @@ class VisionController:
             cv.imshow('mask', mask)
         self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
         self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
+
+    def get_camera_feed(self):
+        img = self.cam.get_image()
+        cv.imshow('result', img)
 
