@@ -1,12 +1,14 @@
 import serial, time, asyncio
 
+
 class ArduinoController:
     arduino = None
     n_reads = 4
     delay = 20
+    baudrate = 9600
 
     def connect(self):
-        arduino = serial.Serial("/dev/ttyUSB0", 9600, timeout=1)
+        arduino = serial.Serial("/dev/ttyUSB0", self.baudrate, timeout=1)
         time.sleep(0.1)
         if arduino.isOpen():
             print("{} connected!".format(arduino.port))

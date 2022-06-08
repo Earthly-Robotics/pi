@@ -7,7 +7,7 @@ from ComponentControllers.WheelsController import WheelsController
 
 class VisionController:
     MAX_SPEED = 0.1
-    DEBUG = False
+    DEBUG = True
 
     cam = None
     wheels_controller = None
