@@ -1,3 +1,7 @@
+import base64
+import json
+import pickle
+
 import cv2 as cv
 import numpy as np
 
@@ -13,11 +17,13 @@ class CameraFeed:
         self.camera = camera
         self.visionController = visionController
 
-    def send_camera_feed(self, bool, netwerkcontroller):
+    def send_camera_feed(self, bool, network_controller):
         while bool:
             frame = self.camera.get_image()
-            frame_encode = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
-            data_encode = np.array(frame_encode, dtype=object)
-            byte_encode = data_encode.tobytes()
-            netwerkcontroller.send_message(byte_encode, netwerkcontroller.client_address)
-            cv.waitKey(1)
+            _, buffer = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
+            buffer = base64.b64encode(buffer).decode()
+            msg = {"MT": "CameraFeed",
+                   "FEED": buffer}
+            msg = json.dumps(msg)
+            network_controller.sendto(msg.encode(), (network_controller.ip_address, network_controller.port))
+        self.camera.close()

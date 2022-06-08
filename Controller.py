@@ -11,5 +11,3 @@ def main():
     server.setup_server()
 
 main()
-
-

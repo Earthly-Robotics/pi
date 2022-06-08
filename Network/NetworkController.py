@@ -1,3 +1,4 @@
+import base64
 import platform
 from Network.ConfigReader import config
 import socket
@@ -7,7 +8,7 @@ from Logger.FileLogger import FileLogger
 from ComponentControllers.WheelsController import WheelsController
 from ComponentControllers.VisionController import VisionController
 import cv2 as cv
-import numpy, pickle
+import numpy as np
 
 class NetworkController:
 
@@ -27,7 +28,7 @@ class NetworkController:
         self.wheels_controller = WheelsController()
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
-        self.buffer_size = 1024
+        self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
         #self.udp_server_socket.bind((self.ip_address,self.port))
