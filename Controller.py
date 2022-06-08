@@ -1,8 +1,21 @@
-import cv2 as cv
+import asyncio
 from ComponentControllers.VisionController import VisionController
+from ComponentControllers.ArduinoController import ArduinoController
 
-vision_controller = VisionController()
+# vision_controller = VisionController()
 
-while True:
-    vision_controller.track_blue_cube()
-    cv.waitKey(1)
+
+async def main():
+    arduino_controller = arduino_setup()
+    # vision_controller.track_blue_cube()
+    arduino_controller.close()
+
+
+def arduino_setup():
+    controller = ArduinoController()
+    controller.connect()
+    asyncio.create_task(controller.read_message())
+    return controller
+
+
+asyncio.run(main())
