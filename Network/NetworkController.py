@@ -7,10 +7,11 @@ from Logger.FileLogger import FileLogger
 from ComponentControllers.WheelsController import WheelsController
 from ComponentControllers.VisionController import VisionController
 import cv2 as cv
+import numpy, pickle
 
 class NetworkController:
 
-    def __init__(self, vision_controller=VisionController()):
+    def __init__(self, camerafeed):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -21,13 +22,15 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
-        self.vision_controller = vision_controller
+        #self.vision_controller = vision_controller
+        self.camerafeed = camerafeed
         self.wheels_controller = WheelsController()
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
         self.buffer_size = 1024
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
+        #self.udp_server_socket.bind((self.ip_address,self.port))
 
 
     def setup_server(self):
@@ -93,7 +96,7 @@ class NetworkController:
             case "VB":
                 msg_from_server = "Variable Button received"
                 bytes_to_send = str.encode(msg_from_server)
-                self.send_message(bytes_to_send, self.client_address)
+                self
             case "RJB":
                 print()
             case "LJB":
@@ -101,13 +104,11 @@ class NetworkController:
             case "StartLineDancing":
                 self.logger.log("Start Line Dancing")
             case "CF":
-                self.send_camera_feed(self.vision_controller.get_camera_feed())
+                self.camerafeed.send_camera_feed(True, self)
             case _:
                 self.logger.log("Not an existing MessageType")
 
     def send_message(self, bytes_to_send, address):
         self.udp_server_socket.sendto(bytes_to_send, address)
 
-    def send_camera_feed(self, frame, address):
-        _, send_data = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
-        self.udp_server_socket.sendto(send_data, address)
+

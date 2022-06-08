@@ -1,17 +1,15 @@
 from Network.NetworkController import *
 from ComponentControllers.VisionController import VisionController
+from Components.Camera import Camera
+from Components.CameraFeed import CameraFeed
 import cv2 as cv
 
 def main():
     vision_controller = VisionController()
-    server = NetworkController(vision_controller)
+    camerafeed = CameraFeed(vision_controller.cam, vision_controller)
+    server = NetworkController(camerafeed)
     server.setup_server()
 
-    # vision_controller = VisionController()
-    #
-    # while True:
-    #     vision_controller.get_camera_feed()
-    #     cv.waitKey(1)
-
 main()
+
 
