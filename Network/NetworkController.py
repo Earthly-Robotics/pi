@@ -76,6 +76,7 @@ class NetworkController:
                 # if self.i < 1:
                 #     self.wheels_controller.move_wheels(x, y)
                 #     self.i = self.i + 1
+                print(str(x) + " " + str(y))
                 self.wheels_controller.move_wheels(x, y)
                 # print("LeftJoystick: x : {}, y : {}".format(x, y))
                 msg_from_server = "Data LeftJoystick received"

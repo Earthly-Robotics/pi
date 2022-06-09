@@ -51,31 +51,31 @@ class WheelsController:
             motor_right.move(0)
             print("right")
 
-"""
+
         # top-right
         if x > max_mid and y > max_mid:
             print("top-right")
             percent = math.floor(((x - max_mid + y - max_mid) / 512) * 100)
             print(percent)
-            # motor_left.move(percent)
-            # motor_right.move(percent)
+            motor_left.move(100)
+            motor_right.move(50)
 
         # top-left
         if x < min_mid and y > max_mid:
-            motor_left.move(percent)
-            motor_right.move(percent)
+            motor_left.move(100)
+            motor_right.move(50)
             print("top-left")
 
         # bottom-right
         if x > max_mid and y < min_mid:
-            motor_left.move(percent)
-            motor_right.move(percent)
+            motor_left.move(100)
+            motor_right.move(50)
             print("bottom-right")
 
         # bottom-left
         if x < min_mid and y < min_mid:
-            motor_left.move(percent)
-            motor_right.move(percent)
+            motor_left.move(50)
+            motor_right.move(100)
             print("bottom-left")
-"""
-        # https://sensorkit.joy-it.net/en/sensors/ky-023
+
+# https://sensorkit.joy-it.net/en/sensors/ky-023
