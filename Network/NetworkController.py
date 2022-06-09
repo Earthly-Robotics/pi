@@ -49,6 +49,7 @@ class NetworkController:
         self.logger.log("Server started listening...")
         while True:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
@@ -62,7 +63,6 @@ class NetworkController:
                 self.send_message(bytes_to_send, address)
 
     def __handle_message(self, message):
-        max_mid = 500
         match (message["MT"]):
             case "LJ":
                 x = message["x"]

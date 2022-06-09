@@ -13,8 +13,8 @@ class WheelsController:
         :return:
         """
 
-        motor_left = WheelMotor(19, 16, 13)
-        motor_right = WheelMotor(9, 10, 14)
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
         max_mid = 500  # Deadzone positive x and y
         min_mid = 400  # Deadzone negative x and y
 
@@ -27,6 +27,7 @@ class WheelsController:
             percent = math.floor(((y - max_mid) / 521) * 100)
             # motor_left.move(min(min(percent, 100), 0))
             motor_left.move(percent)
+            motor_right.move(percent)
             print("forwards")
 
         # backwards
@@ -39,7 +40,7 @@ class WheelsController:
         # left
         if x < min_mid < y < max_mid:
             percent = math.floor(((x - min_mid) / min_mid) * 100)
-            motor_left.move(percent)
+            motor_left.move(0)
             motor_right.move(percent)
             print("left")
 
@@ -47,16 +48,17 @@ class WheelsController:
         if x > max_mid > y > min_mid:
             percent = math.floor(((x - max_mid) / 521) * 100)
             motor_left.move(percent)
-            motor_right.move(percent)
+            motor_right.move(0)
             print("right")
 
-
-        """
+"""
         # top-right
         if x > max_mid and y > max_mid:
             print("top-right")
-            motor_left.move(percent)
-            motor_right.move(percent)
+            percent = math.floor(((x - max_mid + y - max_mid) / 512) * 100)
+            print(percent)
+            # motor_left.move(percent)
+            # motor_right.move(percent)
 
         # top-left
         if x < min_mid and y > max_mid:
@@ -75,5 +77,5 @@ class WheelsController:
             motor_left.move(percent)
             motor_right.move(percent)
             print("bottom-left")
-        """
+"""
         # https://sensorkit.joy-it.net/en/sensors/ky-023
