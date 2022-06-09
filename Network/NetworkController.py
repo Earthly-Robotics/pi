@@ -106,6 +106,10 @@ class NetworkController:
                 self.logger.log("Start Line Dancing")
             case "CF":
                 self.camerafeed.send_camera_feed(True, self)
+            case "PS":
+                #move forward
+                self.wheels_controller.move_logic(205, 505)
+                #ronddraaien servo
             case _:
                 self.logger.log("Not an existing MessageType")
 
