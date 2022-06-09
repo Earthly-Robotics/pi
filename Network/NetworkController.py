@@ -1,15 +1,21 @@
 import platform
-from Network.ConfigReader import config
 import socket
 import json
-import asyncio
+import threading
+import time
+
+from Network.ConfigReader import config
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
-from ComponentControllers.WheelsController import WheelsController
+# from ComponentControllers.WheelsController import WheelsController
+from threading import Thread
+
 
 class NetworkController:
 
-    def __init__(self, wheels_controller=WheelsController()):
+    threads = list()
+    # def __init__(self, wheels_controller=WheelsController()):
+    def __init__(self):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -20,15 +26,14 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
-        # self.vision_controller = vision_controller
-        self.wheels_controller = wheels_controller
-        # self.camera_feed = camera_feed
+        # self.wheels_controller = wheels_controller
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
         self.buffer_size = 1024
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.i = 0
+        self.line_dancing = False
+        self.LD_thread_id = 0
 
     def setup_server(self):
         """
@@ -44,14 +49,16 @@ class NetworkController:
         Starts listening for messages on the socket.
         :return:
         """
-        print(self.ip_address)
-        print(self.port)
+        print("Own IP: ", self.ip_address)
+        print("Own Port: ", self.port)
         self.logger.log("Server started listening...")
         while True:
+            print("Komt hier")
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
+            print("Client address: ", address)
 
             try:
                 message = json.loads(message)
@@ -60,9 +67,9 @@ class NetworkController:
                 self.logger.log(str(err))
                 bytes_to_send = str.encode("Message wasn't a JSON string")
                 self.send_message(bytes_to_send, address)
+        print("Loop Done listening")
 
     def __handle_message(self, message):
-        max_mid = 500
         match (message["MT"]):
             case "LJ":
                 x = message["x"]
@@ -70,13 +77,7 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                # loop = asyncio.get_event_loop()
-                # loop.run_until_complete(self.wheels_controller.move_wheels(x, y))
-                # self.logger.log("LeftJoystick: x : {}, y : {}".format(x, y))
-                # if self.i < 1:
-                #     self.wheels_controller.move_wheels(x, y)
-                #     self.i = self.i + 1
-                self.wheels_controller.move_wheels(x, y)
+                # self.wheels_controller.move_wheels(x, y)
                 # print("LeftJoystick: x : {}, y : {}".format(x, y))
                 msg_from_server = "Data LeftJoystick received"
                 bytes_to_send = str.encode(msg_from_server)
@@ -105,15 +106,51 @@ class NetworkController:
                 print()
             case "LJB":
                 print()
-            case "StartLineDancing":
+            case "LD":
                 self.logger.log("Start Line Dancing")
+                if self.line_dancing is False:
+                    self.line_dancing = not self.line_dancing
+                    message = {
+                        "MT": "LD",
+                        "B": "T"
+                    }
+                    json_string = json.dumps(message)
+                    bytes_to_send = str.encode(json_string)
+                    t = threading.Thread(target=self.continuously_send_message,
+                                         args=(bytes_to_send, self.client_address, 0), )
+                    t.name = "LD"
+                    self.threads.append(t)
+                    t.start()
+                    print(self.line_dancing)
+                else:
+                    print("Dispose Thread")
+                    self.line_dancing = not self.line_dancing
+                    for thread in self.threads:
+                        if thread.name == "LD":
+                            print("JAAAAAAAAAAAAAAA", self.line_dancing)
+                            thread.join()
+                            print("Thread Disposed")
+                            self.threads.remove(thread)
+
+                    print("yesssssssssssssssssssssssssssssssssssssssssss", self.line_dancing)
+
+            case "SD":
+                self.logger.log("Start Solo Dancing")
+            case "PS":
+                self.logger.log("Start Planting Seeds")
+            case "BR":
+                self.logger.log("Start following block")
+            case "CR":
+                self.logger.log("Start driving through corner")
             case "CF":
                 print()
             case _:
                 self.logger.log("Not an existing MessageType")
 
+    def continuously_send_message(self, bytes_to_send, address, interval):
+        while self.line_dancing:
+            self.send_message(bytes_to_send, address)
+            time.sleep(interval)
+
     def send_message(self, bytes_to_send, address):
         self.udp_server_socket.sendto(bytes_to_send, address)
-
-    # def send_camera_feed(self, frame, address):
-    #     self.udp_server_socket.sendto(, address)
