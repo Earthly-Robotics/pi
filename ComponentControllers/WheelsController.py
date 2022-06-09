@@ -1,78 +1,81 @@
 from Components.WheelMotor import WheelMotor
+from time import sleep
+import math
 
 
 class WheelsController:
 
-    def move_logic(self, x, y):
+    def move_wheels(self, x, y):
+        """
+        Moves the wheels based on joystick position
+        :param x: joystick x position
+        :param y: joystick y position
+        :return:
+        """
 
-        motor_left = WheelMotor(19, 16, 13)
-        motor_right = WheelMotor(9, 10, 14)
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
+        max_mid = 500  # Deadzone positive x and y
+        min_mid = 400  # Deadzone negative x and y
 
-        if 400 < x < 500 and 400 < y < 500:
+        if min_mid < x < max_mid and min_mid < y < max_mid:
             motor_left.move(0)
             motor_right.move(0)
+
         # forwards
-        if y > 500 and x < 1010 and x > 100:
-            motor_left.move(0.5)
-            motor_right.move(0.5)
+        if y > max_mid > x > min_mid:
+            percent = math.floor(((y - max_mid) / 521) * 100)
+            # motor_left.move(min(min(percent, 100), 0))
+            motor_left.move(percent)
+            motor_right.move(percent)
             print("forwards")
 
         # backwards
-        if y < 400 and x < 1010 and x > 100:
-            motor_left.move(0.5)
-            motor_right.move(0.25)
+        if y < min_mid < x < max_mid:
+            percent = math.floor(((y - min_mid) / min_mid) * 100)
+            motor_left.move(percent)
+            motor_right.move(percent)
             print("backwards")
 
         # left
-        if x < 400 and y < 1010 and y > 100:
-            motor_left.move(0.5)
-            motor_right.move(0.5)
+        if x < min_mid < y < max_mid:
+            percent = math.floor(((x - min_mid) / min_mid) * 100)
+            motor_left.move(0)
+            motor_right.move(percent)
             print("left")
 
         # right
-        if x > 500 and y < 1010 and y > 100:
-            motor_left.move(0.5)
-            motor_right.move(0.5)
+        if x > max_mid > y > min_mid:
+            percent = math.floor(((x - max_mid) / 521) * 100)
+            motor_left.move(percent)
+            motor_right.move(0)
             print("right")
 
+"""
         # top-right
-        if x > 1010 and y > 1010:
+        if x > max_mid and y > max_mid:
             print("top-right")
-            # motor_left.move(0.2)
-            # motor_left.move(0.4)
-            # motor_left.move(0.6)
-            # motor_left.move(0.8)
-            # motor_left.move(1)
-            # motor_left.move(0.9)
-            # motor_left.move(0.6)
-            # motor_left.move(0.4)
-            # motor_left.move(0.2)
-            # sleep(2)
-            # motor_left.move(0)
-            # sleep(2)
-            # motor_left.move(-0.2)
-            # motor_left.move(-0.5)
-            # motor_left.move(-0.8)
-            # motor_left.move(-1)
-            motor_left.move(0.5)
-            motor_right.move(0.25)
+            percent = math.floor(((x - max_mid + y - max_mid) / 512) * 100)
+            print(percent)
+            # motor_left.move(percent)
+            # motor_right.move(percent)
 
         # top-left
-        if x == 1 and y == 1010:
-            motor_left.move(0.25)
-            motor_right.move(0.5)
+        if x < min_mid and y > max_mid:
+            motor_left.move(percent)
+            motor_right.move(percent)
             print("top-left")
 
         # bottom-right
-        if x > 1010 and y == 1:
-            motor_left.move(0.25)
-            motor_right.move(0.5)
+        if x > max_mid and y < min_mid:
+            motor_left.move(percent)
+            motor_right.move(percent)
             print("bottom-right")
 
         # bottom-left
-        if x == 1 and y == 1:
-            motor_left.move(0.5)
-            motor_right.move(0.25)
+        if x < min_mid and y < min_mid:
+            motor_left.move(percent)
+            motor_right.move(percent)
             print("bottom-left")
-
+"""
         # https://sensorkit.joy-it.net/en/sensors/ky-023

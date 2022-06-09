@@ -3,6 +3,7 @@ import platform
 from Network.ConfigReader import config
 import socket
 import json
+import asyncio
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 from ComponentControllers.WheelsController import WheelsController
@@ -12,7 +13,7 @@ import numpy as np
 
 class NetworkController:
 
-    def __init__(self, camerafeed):
+    def __init__(self, wheels_controller=WheelsController(),camerafeed):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -23,16 +24,16 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
-        #self.vision_controller = vision_controller
         self.camerafeed = camerafeed
         self.wheels_controller = WheelsController()
+        # self.vision_controller = vision_controller
+        self.wheels_controller = wheels_controller
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        #self.udp_server_socket.bind((self.ip_address,self.port))
-
+        self.i = 0
 
     def setup_server(self):
         """
@@ -53,6 +54,7 @@ class NetworkController:
         self.logger.log("Server started listening...")
         while True:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
@@ -73,8 +75,14 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                self.wheels_controller.move_logic(x, y)
-                self.logger.log("LeftJoystick: x : {}, y : {}".format(x, y))
+                # loop = asyncio.get_event_loop()
+                # loop.run_until_complete(self.wheels_controller.move_wheels(x, y))
+                # self.logger.log("LeftJoystick: x : {}, y : {}".format(x, y))
+                # if self.i < 1:
+                #     self.wheels_controller.move_wheels(x, y)
+                #     self.i = self.i + 1
+                self.wheels_controller.move_wheels(x, y)
+                # print("LeftJoystick: x : {}, y : {}".format(x, y))
                 msg_from_server = "Data LeftJoystick received"
                 bytes_to_send = str.encode(msg_from_server)
                 self.send_message(bytes_to_send, self.client_address)
@@ -109,11 +117,10 @@ class NetworkController:
             case "PS":
                 #move forward
                 self.wheels_controller.move_logic(205, 505)
-                #ronddraaien servo
+                #ronddraaien servo   
             case _:
                 self.logger.log("Not an existing MessageType")
 
     def send_message(self, bytes_to_send, address):
         self.udp_server_socket.sendto(bytes_to_send, address)
-
 

@@ -1,13 +1,14 @@
 from Network.NetworkController import *
 from ComponentControllers.VisionController import VisionController
-from Components.Camera import Camera
+from ComponentControllers.WheelsController import WheelsController
 from Components.CameraFeed import CameraFeed
 import cv2 as cv
 
 def main():
     vision_controller = VisionController()
-    camerafeed = CameraFeed(vision_controller.cam, vision_controller)
-    server = NetworkController(camerafeed)
+    camera_feed = CameraFeed(vision_controller.cam,vision_controller)
+    wheels_controller = WheelsController()
+    server = NetworkController(wheels_controller, camerafeed)
     server.setup_server()
 
 main()
