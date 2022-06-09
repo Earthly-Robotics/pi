@@ -51,6 +51,31 @@ class WheelsController:
             motor_right.move(0)
             print("right")
 
+    def goLeft(self):
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
+        motor_left.move(0)
+        motor_right.move(50)
+    def goRight(self):
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
+        motor_left.move(50)
+        motor_right.move(0)
+    def goForward(self):
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
+        motor_left.move(50)
+        motor_right.move(50)
+    def goLeftForward(self):
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
+        motor_left.move(25)
+        motor_right.move(50)
+    def goRightForward(self):
+        motor_left = WheelMotor(19, 26, 13)
+        motor_right = WheelMotor(16, 20, 12)
+        motor_left.move(50)
+        motor_right.move(25)
 """
         # top-right
         if x > max_mid and y > max_mid:

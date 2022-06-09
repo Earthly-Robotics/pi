@@ -8,12 +8,14 @@ from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 from ComponentControllers.WheelsController import WheelsController
 from ComponentControllers.VisionController import VisionController
+from Components.AutoSeedPlant import AutoSeedPlant
 import cv2 as cv
 import numpy as np
 
 class NetworkController:
 
-    def __init__(self, wheels_controller=WheelsController(),camerafeed):
+
+    def __init__(self,camerafeed , wheels_controller=WheelsController()):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -24,7 +26,8 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
-        self.camerafeed = camerafeed
+        self.auto_seed_plant = AutoSeedPlant()
+        self.camera_feed = camerafeed
         self.wheels_controller = WheelsController()
         # self.vision_controller = vision_controller
         self.wheels_controller = wheels_controller
@@ -113,10 +116,10 @@ class NetworkController:
             case "StartLineDancing":
                 self.logger.log("Start Line Dancing")
             case "CF":
-                self.camerafeed.send_camera_feed(True, self)
+                self.camera_feed.send_camera_feed(True, self)
             case "PS":
-                #move forward
-                self.wheels_controller.move_logic(205, 505)
+                #move pattern
+                self.auto_seed_planter.plantSeed("SQ")
                 #ronddraaien servo   
             case _:
                 self.logger.log("Not an existing MessageType")

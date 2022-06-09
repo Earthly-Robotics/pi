@@ -8,7 +8,7 @@ def main():
     vision_controller = VisionController()
     camera_feed = CameraFeed(vision_controller.cam,vision_controller)
     wheels_controller = WheelsController()
-    server = NetworkController(wheels_controller, camerafeed)
+    server = NetworkController(camera_feed, wheels_controller)
     server.setup_server()
 
 main()
