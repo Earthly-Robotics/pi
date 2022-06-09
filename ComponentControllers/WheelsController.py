@@ -4,7 +4,7 @@ import math
 
 
 class WheelsController:
-
+    last_percent_y = 0
     def move_wheels(self, x, y):
         """
         Moves the wheels based on joystick position
@@ -24,16 +24,26 @@ class WheelsController:
 
         # forwards
         if y > max_mid > x > min_mid:
+            # print(WheelsController.last_percent_y)
             percent = math.floor(((y - max_mid) / 521) * 100)
             # motor_left.move(min(min(percent, 100), 0))
-            motor_left.move(percent)
+            if WheelsController.last_percent_y < percent:
+                WheelsController.last_percent_y = WheelsController.last_percent_y + 1
+            elif WheelsController.last_percent_y > percent:
+                WheelsController.last_percent_y = WheelsController.last_percent_y + -1
+            motor_left.move(WheelsController.last_percent_y)
             print("forwards")
 
         # backwards
         if y < min_mid < x < max_mid:
             percent = math.floor(((y - min_mid) / min_mid) * 100)
-            motor_left.move(percent)
-            motor_right.move(percent)
+            if WheelsController.last_percent_y < abs(percent):
+                WheelsController.last_percent_y = WheelsController.last_percent_y + 1
+            elif WheelsController.last_percent_y > abs(percent):
+                WheelsController.last_percent_y = WheelsController.last_percent_y - 1
+            motor_left.move(WheelsController.last_percent_y * -1)
+            # motor_left.move(percent)
+            # motor_right.move(percent)
             print("backwards")
 
         # left
