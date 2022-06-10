@@ -1,17 +1,20 @@
 import asyncio
 import cv2 as cv
+import threading
 
 from ComponentControllers.VisionController import VisionController
 from ComponentControllers.ArduinoController import ArduinoController
 from Components.LoadCell import LoadCell
 #from Components.GyroAccelerometer import GyroAccelerometer
-
-# vision_controller = VisionController()
+from Network.NetworkController import *
 
 
 async def main():
     # arduino_controller = arduino_setup()
     # arduino_controller.close()
+    server = NetworkController()
+    thread = threading.Thread(target=server.setup_server, daemon=True)
+    thread.start()
     try:
         load_cell = LoadCell()
         while True:
