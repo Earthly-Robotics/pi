@@ -4,16 +4,17 @@ import json
 import threading
 import time
 
+from Components.LoadCell import LoadCell
 from Network.ConfigReader import config
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 # from ComponentControllers.WheelsController import WheelsController
-from threading import Thread
 
 
 class NetworkController:
-
     threads = list()
+    load_cell = None
+
     # def __init__(self, wheels_controller=WheelsController()):
     def __init__(self):
         match platform.system():
@@ -22,7 +23,7 @@ class NetworkController:
                 self.logger = ConsoleLogger()
             case "Linux":
                 self.params = config('Pi')
-                self.logger = FileLogger()
+                self.logger = ConsoleLogger()
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
@@ -34,6 +35,8 @@ class NetworkController:
         self.profile = 0
         self.line_dancing = False
         self.LD_thread_id = 0
+
+        self.load_cell = LoadCell(network_controller=self)
 
     def setup_server(self):
         """
@@ -57,7 +60,6 @@ class NetworkController:
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
-
             try:
                 message = json.loads(message)
                 self.__handle_message(message)
@@ -69,26 +71,28 @@ class NetworkController:
     def __handle_message(self, message):
         match (message["MT"]):
             case "LJ":
-                x = message["x"]
-                y = message["y"]
-                p = message["p"]
-                if self.profile != p:
-                    self.profile = p
-                # self.wheels_controller.move_wheels(x, y)
-                # print("LeftJoystick: x : {}, y : {}".format(x, y))
-                msg_from_server = "Data LeftJoystick received"
-                bytes_to_send = str.encode(msg_from_server)
-                self.send_message(bytes_to_send, self.client_address)
+                pass
+                # x = message["x"]
+                # y = message["y"]
+                # p = message["p"]
+                # if self.profile != p:
+                #     self.profile = p
+                # # self.wheels_controller.move_wheels(x, y)
+                # # print("LeftJoystick: x : {}, y : {}".format(x, y))
+                # msg_from_server = "Data LeftJoystick received"
+                # bytes_to_send = str.encode(msg_from_server)
+                # self.send_message(bytes_to_send, self.client_address)
             case "RJ":
-                x = message["x"]
-                y = message["Y"]
-                p = message["p"]
-                if self.profile != p:
-                    self.profile = p
-                self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
-                msg_from_server = "Data RightJoystick received"
-                bytes_to_send = str.encode(msg_from_server)
-                self.send_message(bytes_to_send, self.client_address)
+                pass
+                # x = message["x"]
+                # y = message["Y"]
+                # p = message["p"]
+                # if self.profile != p:
+                #     self.profile = p
+                # self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
+                # msg_from_server = "Data RightJoystick received"
+                # bytes_to_send = str.encode(msg_from_server)
+                # self.send_message(bytes_to_send, self.client_address)
             case "PB":
                 p = message["p"]
                 self.profile = p
@@ -100,31 +104,11 @@ class NetworkController:
                 bytes_to_send = str.encode(msg_from_server)
                 self.send_message(bytes_to_send, self.client_address)
             case "RJB":
-                print()
+                pass
             case "LJB":
-                print()
+                pass
             case "LD":
-                self.logger.log("Start Line Dancing")
-                if self.line_dancing is False:
-                    self.line_dancing = not self.line_dancing
-                    message = {
-                        "MT": "LD",
-                        "B": "T"
-                    }
-                    json_string = json.dumps(message)
-                    bytes_to_send = str.encode(json_string)
-                    t = threading.Thread(target=self.continuously_send_message,
-                                         args=(bytes_to_send, self.client_address, 0), )
-                    t.name = "LD"
-                    self.threads.append(t)
-                    t.start()
-                else:
-                    self.line_dancing = not self.line_dancing
-                    for thread in self.threads:
-                        if thread.name == "LD":
-                            thread.join()
-                            self.threads.remove(thread)
-
+                pass
             case "SD":
                 self.logger.log("Start Solo Dancing")
             case "PS":
@@ -134,14 +118,28 @@ class NetworkController:
             case "CR":
                 self.logger.log("Start driving through corner")
             case "CF":
-                print()
+                pass
+            case "LC":
+                self.load_cell.sending = not self.load_cell.sending
+                self.toggle_send(sending=self.load_cell.sending,
+                                 thread_name="LC",
+                                 target=self.load_cell.update_app_data,
+                                 args=(self.client_address, 1))
             case _:
                 self.logger.log("Not an existing MessageType")
 
-    def continuously_send_message(self, bytes_to_send, address, interval):
-        while self.line_dancing:
-            self.send_message(bytes_to_send, address)
-            time.sleep(interval)
+    def toggle_send(self, sending, thread_name, target, args):
+        if sending is False:
+            for thread in self.threads:
+                if thread.name == thread_name:
+                    thread.join()
+                    self.threads.remove(thread)
+        else:
+            t = threading.Thread(target=target,
+                                 args=args)
+            t.name = thread_name
+            self.threads.append(t)
+            t.start()
 
     def send_message(self, bytes_to_send, address):
         self.udp_server_socket.sendto(bytes_to_send, address)
