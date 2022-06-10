@@ -8,6 +8,7 @@ class WheelMotor:
         self.forward = forward
         self.backward = backward
         self.pwm = pwm
+        self.last_percentage = pwm
 
     def move(self, power):
         """
@@ -25,22 +26,26 @@ class WheelMotor:
 
         pwm.start(0)
 
-        # try:
-        GPIO.output(self.forward, GPIO.LOW)  # Set AIN2
-        GPIO.output(self.backward, GPIO.LOW)  # Set AIN2
-        # print(power)
-        # for i in range(0, power, 5):  # Loop 0 to 100 stepping dc by 5 each loop
-        if power > 0:
-            pwm.ChangeDutyCycle(abs(power))
-            GPIO.output(self.forward, GPIO.HIGH)
-        if power < 0:
-            pwm.ChangeDutyCycle(abs(power))
-            GPIO.output(self.backward, GPIO.HIGH)
+        try:
+            GPIO.output(self.forward, GPIO.LOW)  # Set AIN2
+            GPIO.output(self.backward, GPIO.LOW)  # Set AIN2
+            print(power)
+            if power > 0:
+                for i in range(self.last_percentage, power, 5):  # Loop 0 to 100 stepping dc by 5 each loop
+                    pwm.ChangeDutyCycle(abs(i))
+                    GPIO.output(self.forward, GPIO.HIGH)
+            if power < 0:
+                for i in range(self.last_percentage, power, -5):  # Loop 0 to 100 stepping dc by 5 each loop
+                    pwm.ChangeDutyCycle(abs(i))
+                    GPIO.output(self.backward, GPIO.HIGH)
 
-        # TODO: brake, high both
+            # TODO: brake, high both
 
-        time.sleep(0.001)  # wait .001 seconds for timing
+            time.sleep(0.0025)  # wait .001 seconds for timing
 
-        # except KeyboardInterrupt:
-        #     pwm.stop()
-        #     GPIO.cleanup()
+        except KeyboardInterrupt:
+            pwm.stop()
+            GPIO.cleanup()
+        finally:
+            pwm.stop()
+            GPIO.cleanup()

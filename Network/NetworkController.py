@@ -55,6 +55,7 @@ class NetworkController:
         while True:
             print("Komt hier")
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
