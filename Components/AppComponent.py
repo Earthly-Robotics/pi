@@ -9,7 +9,7 @@ class AppComponent:
     def __init__(self, network_controller):
         self.network_controller = network_controller
 
-    def format_component_data(self) -> tuple:
+    def __format_component_data(self) -> tuple:
         pass
 
     def update_app_data(self, ip, interval=0):
