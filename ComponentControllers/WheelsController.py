@@ -1,10 +1,16 @@
+import threading
+
 from Components.WheelMotor import WheelMotor
 from time import sleep
 import math
 
 
 class WheelsController:
-    last_percent_y = 0
+
+    def __init__(self):
+        self.power_left = 0
+        self.power_right = 0
+
     def move_wheels(self, x, y):
         """
         Moves the wheels based on joystick position
@@ -24,37 +30,30 @@ class WheelsController:
 
         # forwards
         if y > max_mid > x > min_mid:
-            # print(WheelsController.last_percent_y)
             percent = math.floor(((y - max_mid) / 521) * 100)
-            # motor_left.move(min(min(percent, 100), 0))
-            motor_left.move(percent)
-            motor_right.move(percent)
+            self.power_left = percent
+            self.power_right = percent
             print("forwards")
 
         # backwards
         if y < min_mid < x < max_mid:
             percent = math.floor(((y - min_mid) / min_mid) * 100)
-            if WheelsController.last_percent_y < abs(percent):
-                WheelsController.last_percent_y = WheelsController.last_percent_y + 1
-            elif WheelsController.last_percent_y > abs(percent):
-                WheelsController.last_percent_y = WheelsController.last_percent_y - 1
-            motor_left.move(WheelsController.last_percent_y * -1)
-            # motor_left.move(percent)
-            # motor_right.move(percent)
+            self.power_left = percent
+            self.power_right = percent
             print("backwards")
 
         # left
         if x < min_mid < y < max_mid:
             percent = math.floor(((x - min_mid) / min_mid) * 100)
-            motor_left.move(0)
-            motor_right.move(percent)
+            self.power_left = -percent
+            self.power_right = percent
             print("left")
 
         # right
         if x > max_mid > y > min_mid:
             percent = math.floor(((x - max_mid) / 521) * 100)
-            motor_left.move(percent)
-            motor_right.move(0)
+            self.power_left = percent
+            self.power_right = -percent
             print("right")
 
 
@@ -83,5 +82,20 @@ class WheelsController:
             motor_left.move(50)
             motor_right.move(100)
             print("bottom-left")
+
+        self.handle_threads(motor_left, motor_right)
+
+    def handle_threads(self, motor_left, motor_right):
+        # Create threads
+        t1 = threading.Thread(target=motor_left.move(), args=self.power_left)
+        t2 = threading.Thread(target=motor_right.move(), args=self.power_right)
+        # Start threads
+        t1.start()
+        t2.start()
+        # Join Threads when done
+        t1.join()
+        t2.join()
+        # Close the current Thread
+        threading.current_thread().join()
 
 # https://sensorkit.joy-it.net/en/sensors/ky-023
