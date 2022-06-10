@@ -1,6 +1,3 @@
-import json
-import time
-
 from HX711 import *
 import RPi.GPIO as GPIO
 
@@ -16,6 +13,7 @@ class LoadCell(AppComponent):
 
     def __init__(self, network_controller, data_pin=6, clock_pin=5, reference_unit=-1103, offset=-108042):
         super().__init__(network_controller)
+        self.msg_type = "LC"
         self.hx.setUnit(Mass.Unit.G)
         self.hx.zero()
 
@@ -33,13 +31,8 @@ class LoadCell(AppComponent):
         """
         return self.hx.weight(samples)
 
+    def format_component_data(self) -> tuple:
+        return "W", self.measure_weight()
+
     def update_app_data(self, ip, interval=0):
-        while self.sending:
-            message = {
-                "MT": "LC",
-                "W": str(self.measure_weight())
-            }
-            json_string = json.dumps(message)
-            msg = str.encode(json_string)
-            self.network_controller.send_message(msg, ip)
-            time.sleep(interval)
+        super().update_app_data(ip, interval)

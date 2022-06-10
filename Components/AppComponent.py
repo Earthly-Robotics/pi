@@ -1,9 +1,16 @@
+import json, time
+
+
 class AppComponent:
     network_controller = None
     sending = False
+    msg_type = ""
 
     def __init__(self, network_controller):
         self.network_controller = network_controller
+
+    def format_component_data(self) -> tuple:
+        pass
 
     def update_app_data(self, ip, interval=0):
         """
@@ -19,4 +26,15 @@ class AppComponent:
         -------
             void
         """
+        while self.sending:
+            data = self.format_component_data()
+            msg_obj = {
+                "MT": self.msg_type,
+            }
+            for i in range(0, len(data), 2):
+                msg_obj[data[i]] = data[i + 1]
+            json_string = json.dumps(msg_obj)
+            msg = str.encode(json_string)
+            self.network_controller.send_message(msg, ip)
+            time.sleep(interval)
         pass

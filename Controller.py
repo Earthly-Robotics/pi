@@ -12,11 +12,13 @@ from Network.NetworkController import *
 async def main():
     # arduino_controller = arduino_setup()
     # arduino_controller.close()
+
     server = NetworkController()
     thread = threading.Thread(target=server.setup_server, daemon=True)
     thread.start()
     time.sleep(100)
     thread.join()
+
     # try:
     #     load_cell = LoadCell()
     #     while True:
