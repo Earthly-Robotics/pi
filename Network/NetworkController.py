@@ -16,7 +16,6 @@ from Logger.FileLogger import FileLogger
 
 class NetworkController:
     threads = list()
-    load_cell = None
 
     # def __init__(self, wheels_controller=WheelsController()):
     def __init__(self):
@@ -36,7 +35,6 @@ class NetworkController:
         self.buffer_size = 1024
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.line_dancing = False
         self.LD_thread_id = 0
 
         self.load_cell = LoadCell(network_controller=self)
@@ -45,6 +43,7 @@ class NetworkController:
     def setup_server(self):
         """
         Starts the server
+
         :return:
         """
         self.udp_server_socket.bind((self.ip_address, self.port))
@@ -54,6 +53,7 @@ class NetworkController:
     def __start_listening(self):
         """
         Starts listening for messages on the socket.
+
         :return:
         """
         print("Own IP: ", self.ip_address)
@@ -111,7 +111,7 @@ class NetworkController:
                 pass
             case "LJB":
                 pass
-            case "LD":
+            case "LINE_DANCE":
                 pass
             case "SOLO_DANCE":
                 self.logger.log("Start Solo Dancing")
@@ -139,6 +139,17 @@ class NetworkController:
                 self.logger.log("Not an existing MessageType")
 
     def toggle_send(self, sending, thread_name, target, args):
+        """
+        Toggle continuously sending of sensor data on another thread.
+
+        :param sending: If false, stops sending of the data and joins the thread.
+        :type sending: bool
+        :param thread_name: The name of the thread
+        :type thread_name: str
+        :param target: The target that will be run on the thread.
+        :param args: The arguments for the target
+        :return:
+        """
         if sending is False:
             for thread in self.threads:
                 if thread.name == thread_name:
@@ -152,4 +163,13 @@ class NetworkController:
             t.start()
 
     def send_message(self, bytes_to_send, address):
+        """
+        Sends message to the given client
+
+        :param bytes_to_send: The bytes that need to be sent to the client
+        :type bytes_to_send: bytearray
+        :param address: The address that needs to receive the message
+        :type address: str
+        :return:
+        """
         self.udp_server_socket.sendto(bytes_to_send, address)
