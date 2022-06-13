@@ -5,9 +5,12 @@ import threading
 import time
 
 from Components.LoadCell import LoadCell
+from Components.GyroAccelerometer import GyroAccelerometer
 from Network.ConfigReader import config
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
+
+
 # from ComponentControllers.WheelsController import WheelsController
 
 
@@ -37,6 +40,7 @@ class NetworkController:
         self.LD_thread_id = 0
 
         self.load_cell = LoadCell(network_controller=self)
+        self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
 
     def setup_server(self):
         """
@@ -109,22 +113,28 @@ class NetworkController:
                 pass
             case "LD":
                 pass
-            case "SD":
+            case "SOLO_DANCE":
                 self.logger.log("Start Solo Dancing")
-            case "PS":
+            case "PLANT":
                 self.logger.log("Start Planting Seeds")
-            case "BR":
+            case "BLUE_BLOCK":
                 self.logger.log("Start following block")
-            case "CR":
-                self.logger.log("Start driving through corner")
-            case "CF":
+            case "CAMERA":
                 pass
-            case "LC":
+            case "CAMERA_DEBUG":
+                pass
+            case self.load_cell.msg_type:
                 self.load_cell.sending = not self.load_cell.sending
                 self.toggle_send(sending=self.load_cell.sending,
-                                 thread_name="LC",
+                                 thread_name=self.load_cell.msg_type,
                                  target=self.load_cell.update_app_data,
-                                 args=(self.client_address, 1))
+                                 args=(self.client_address,))
+            case self.accel_gyro_meter.msg_type:
+                self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
+                self.toggle_send(sending=self.accel_gyro_meter.sending,
+                                 thread_name=self.accel_gyro_meter.msg_type,
+                                 target=self.accel_gyro_meter.update_app_data,
+                                 args=(self.client_address,))
             case _:
                 self.logger.log("Not an existing MessageType")
 

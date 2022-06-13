@@ -13,7 +13,7 @@ class LoadCell(AppComponent):
 
     def __init__(self, network_controller, data_pin=6, clock_pin=5, reference_unit=-1103, offset=-108042):
         super().__init__(network_controller)
-        self.msg_type = "LC"
+        self.msg_type = "WEIGHT"
         self.hx.setUnit(Mass.Unit.G)
         self.hx.zero()
 
@@ -31,14 +31,11 @@ class LoadCell(AppComponent):
         """
         return self.hx.weight(samples)
 
-    def __format_component_data(self) -> tuple:
+    def format_component_data(self) -> tuple:
         """
-        Gets the data from the component and formats it for JSON Serialization.
+        Gets the weight from the load cell and formats it for JSON Serialization.
         :return:
         A tuple with an even amount of elements.
         Must be formatted as followed: "x", "x_value".
         """
         return "W", self.measure_weight()
-
-    def update_app_data(self, ip, interval=0):
-        super().update_app_data(ip, interval)

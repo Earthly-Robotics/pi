@@ -1,47 +1,35 @@
-import smbus  # import SMBus module of I2C
-from time import sleep  # import
-class GyroAccelerometer:
-    # some MPU6050 Registers and their Address
-    PWR_MGMT_1 = 0x6B
-    SMPLRT_DIV = 0x19
-    CONFIG = 0x1A
-    GYRO_CONFIG = 0x1B
-    INT_ENABLE = 0x38
-    ACCEL_X = 0x3B
-    ACCEL_Y = 0x3D
-    ACCEL_Z = 0x3F
-    GYRO_X = 0x43
-    GYRO_Y = 0x45
-    GYRO_Z = 0x47
+import math
 
-    bus = smbus.SMBus(1)
-    device_address = 0x68  # MPU6050 device address
+from mpu6050 import mpu6050
+from Components.AppComponent import AppComponent
 
-    def __init__(self):
-        # write to sample rate register
-        self.bus.write_byte_data(self.device_address, self.SMPLRT_DIV, 7)
 
-        # Write to power management registerp
-        self.bus.write_byte_data(self.device_address, self.PWR_MGMT_1, 1)
+class GyroAccelerometer(AppComponent):
+    sensor = mpu6050(0x68)
+    initial_velocity = 0
+    velocity = 0
 
-        # Write to Configuration register
-        self.bus.write_byte_data(self.device_address, self.CONFIG, 0)
+    def __init__(self, network_controller):
+        super().__init__(network_controller)
+        self.msg_type = "VELOCITY"
+        self.sensor.set_accel_range(self.sensor.ACCEL_RANGE_2G)
 
-        # Write to Gyro configuration register
-        self.bus.write_byte_data(self.device_address, self.GYRO_CONFIG, 24)
+    def get_accel_data(self):
+        return self.sensor.get_accel_data()
 
-        # Write to interrupt enable register
-        self. bus.write_byte_data(self.device_address, self.INT_ENABLE, 1)
+    def get_gyro_data(self):
+        return self.sensor.get_gyro_data()
 
-    def read_raw_data(self, addr):
-        # Accelero and Gyro value are 16-bit
-        high = self.bus.read_byte_data(self.device_address, addr)
-        low = self.bus.read_byte_data(self.device_address, addr + 1)
-
-        # concatenate higher and lower value
-        value = ((high << 8) | low)
-
-        # to get signed value from mpu6050
-        if value > 32768:
-            value = value - 65536
-        return value
+    def format_component_data(self) -> tuple:
+        """
+        Gets the data from the component and formats it for JSON Serialization.
+        :return:
+        A tuple with an even amount of elements.
+        Must be formatted as followed: "x", "x_value".
+        """
+        data = self.get_accel_data()
+        vel_x = self.initial_velocity + abs(float(data["x"])) * self.interval
+        vel_y = self.initial_velocity + abs(float(data["y"])) * self.interval
+        vel_z = self.initial_velocity + abs(float(data["z"])) * self.interval
+        self.velocity = ((vel_x + vel_y + vel_z) - 9.81) / (self.interval * 3)
+        return "Velocity", str(round(self.velocity * 3.6, 2)) + " km/h"

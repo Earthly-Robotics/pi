@@ -5,21 +5,20 @@ class AppComponent:
     network_controller = None
     sending = False
     msg_type = ""
+    interval = 1
 
     def __init__(self, network_controller):
         self.network_controller = network_controller
 
-    def __format_component_data(self) -> tuple:
+    def format_component_data(self) -> tuple:
         pass
 
-    def update_app_data(self, ip, interval=0):
+    def update_app_data(self, ip):
         """
         Updates the data in the app with current data of the component.
 
         Parameters
         ----------
-        interval : float, optional
-            Time between each update that's sent to the app in seconds.
         ip : string
             IP address of the client that the update needs to be sent to
         Returns
@@ -36,5 +35,4 @@ class AppComponent:
             json_string = json.dumps(msg_obj)
             msg = str.encode(json_string)
             self.network_controller.send_message(msg, ip)
-            time.sleep(interval)
-        pass
+            time.sleep(self.interval)
