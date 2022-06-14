@@ -9,13 +9,16 @@ class LoadCell(AppComponent):
     clock_pin = 5
     reference_unit = -1103
     offset = -108042
-    hx = SimpleHX711(data_pin, clock_pin, reference_unit, offset)
 
     def __init__(self, network_controller, data_pin=6, clock_pin=5, reference_unit=-1103, offset=-108042):
         super().__init__(network_controller)
         self.msg_type = "WEIGHT"
-        self.hx.setUnit(Mass.Unit.G)
-        self.hx.zero()
+        try:
+            self.hx = SimpleHX711(data_pin, clock_pin, reference_unit, offset)
+            self.hx.setUnit(Mass.Unit.G)
+            self.hx.zero()
+        except Exception as e:
+            print("Could not start HX711:\n", e)
 
     def measure_weight(self, samples=15):
         """

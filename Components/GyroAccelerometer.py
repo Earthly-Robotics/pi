@@ -5,14 +5,17 @@ from Components.AppComponent import AppComponent
 
 
 class GyroAccelerometer(AppComponent):
-    sensor = mpu6050(0x68)
     initial_velocity = 0
     velocity = 0
 
     def __init__(self, network_controller):
         super().__init__(network_controller)
         self.msg_type = "VELOCITY"
-        self.sensor.set_accel_range(self.sensor.ACCEL_RANGE_2G)
+        try:
+            self.sensor = mpu6050(0x68)
+            self.sensor.set_accel_range(self.sensor.ACCEL_RANGE_2G)
+        except Exception as e:
+            print("Could not connect to the mpu6050:\n", e)
 
     def get_accel_data(self):
         return self.sensor.get_accel_data()

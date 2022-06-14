@@ -12,20 +12,17 @@ from Network.NetworkController import *
 async def main():
     # arduino_controller = arduino_setup()
     # arduino_controller.close()
-
-    server = NetworkController()
-    thread = threading.Thread(target=server.setup_server, daemon=True)
-    thread.start()
-    time.sleep(100)
-    thread.join()
-
-    # try:
-    #     load_cell = LoadCell()
-    #     while True:
-    #         print(load_cell.measure_weight())
-    # except KeyboardInterrupt:
-    #     print("Keyboard interrupt detected")
-
+    try:
+        server = NetworkController()
+        thread = threading.Thread(target=server.setup_server, daemon=True)
+        thread.start()
+        while True:
+            pass
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if thread is not None:
+            thread.join()
 
 def arduino_setup():
     controller = ArduinoController()

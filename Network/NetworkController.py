@@ -5,6 +5,8 @@ import json
 import threading
 import time
 
+from ComponentControllers.VisionController import VisionController
+from ComponentControllers.WheelsController import WheelsController
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
 from Components.GyroAccelerometer import GyroAccelerometer
@@ -33,15 +35,20 @@ class NetworkController:
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
 
-        self.load_cell = LoadCell(network_controller=self)
-        self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
-        self.camera = Camera(network_controller=self)
+        try:
+            self.wheels_controller = WheelsController()
+            self.load_cell = LoadCell(network_controller=self)
+            self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
+            self.camera = Camera(network_controller=self)
+            self.vision_controller = VisionController(cam=self.camera,
+                                                      wheels_controller=self.wheels_controller,
+                                                      network_controller=self,)
+        except Exception as e:
+            self.logger.log("Couldn't create a component:\n{0}".format(e))
 
     def setup_server(self):
         """
         Starts the server
-
-        :return:
         """
         self.udp_server_socket.bind((self.ip_address, self.port))
         self.logger.log("Server online")
@@ -50,8 +57,6 @@ class NetworkController:
     def __start_listening(self):
         """
         Starts listening for messages on the socket.
-
-        :return:
         """
         print("Own IP: ", self.ip_address)
         print("Own Port: ", self.port)
@@ -115,31 +120,42 @@ class NetworkController:
             case "PLANT":
                 self.logger.log("Start Planting Seeds")
             case "BLUE_BLOCK":
-                self.logger.log("Start following block")
-            case "CAMERA":
+                self.vision_controller.tracking = not self.vision_controller.tracking
+                self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
+                    self.vision_controller.tracking))
+                self.toggle_send(sending=self.vision_controller.tracking,
+                                 thread_name="BLUE_BLOCK",
+                                 target=self.vision_controller.start_track_blue_cube,
+                                 args=(self.client_address,)
+                                 )
+
+            case self.camera.msg_type:
                 self.camera.sending = not self.camera.sending
+                self.logger.log("Received CAMERA. Will it start sending? {0}".format(
+                    self.camera.sending))
                 self.toggle_send(sending=self.camera.sending,
                                  thread_name=self.camera.msg_type,
                                  target=self.camera.update_app_data,
-                                 args=(self.client_address,))
-            case "CAMERA_DEBUG":
-                pass
+                                 args=(self.client_address,)
+                                 )
             case self.load_cell.msg_type:
                 self.load_cell.sending = not self.load_cell.sending
                 self.toggle_send(sending=self.load_cell.sending,
                                  thread_name=self.load_cell.msg_type,
                                  target=self.load_cell.update_app_data,
-                                 args=(self.client_address,))
+                                 args=(self.client_address,)
+                                 )
             case self.accel_gyro_meter.msg_type:
                 self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
                 self.toggle_send(sending=self.accel_gyro_meter.sending,
                                  thread_name=self.accel_gyro_meter.msg_type,
                                  target=self.accel_gyro_meter.update_app_data,
-                                 args=(self.client_address,))
+                                 args=(self.client_address,)
+                                 )
             case _:
                 self.logger.log("Not an existing MessageType")
 
-    def toggle_send(self, sending, thread_name, target, args):
+    def toggle_send(self, sending, thread_name, target, args=None):
         """
         Toggle continuously sending of sensor data on another thread.
 
@@ -149,6 +165,7 @@ class NetworkController:
         :type thread_name: str
         :param target: The target that will be run on the thread.
         :param args: The arguments for the target
+        :type args: any or None
         :return:
         """
         if sending is False:
@@ -157,8 +174,11 @@ class NetworkController:
                     thread.join()
                     self.threads.remove(thread)
         else:
-            t = threading.Thread(target=target,
-                                 args=args)
+            if args is None:
+                t = threading.Thread(target=target)
+            else:
+                t = threading.Thread(target=target,
+                                     args=args)
             t.name = thread_name
             self.threads.append(t)
             t.start()
