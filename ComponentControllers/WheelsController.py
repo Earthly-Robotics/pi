@@ -117,8 +117,12 @@ class WheelsController:
         right_minus_left = ((100 - abs(per_y)) * (per_x / 100) + per_x)  # 0
         power_left_motor = (right_plus_left - right_minus_left) / 2
         power_right_motor = (right_plus_left + right_minus_left) / 2
-        self.motor_left.move(math.floor(power_left_motor))
-        self.motor_right.move(math.floor(power_right_motor))
+        t1 = threading.Thread(target=self.motor_left.move, args=(math.floor(power_left_motor),))
+        t2 = threading.Thread(target=self.motor_right.move, args=(math.floor(power_right_motor),))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
 
 
 # https://sensorkit.joy-it.net/en/sensors/ky-023

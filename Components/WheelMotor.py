@@ -16,6 +16,7 @@ class WheelMotor:
         GPIO.setup(self.backward, GPIO.OUT)  # Connected to 16
         GPIO.setup(self.pwm_pin, GPIO.OUT)  # Connected to PWM
         self.pwm = GPIO.PWM(self.pwm_pin, 1000)  # Sets pwm frequency to 1000
+        self.lock = threading.Lock()
 
     def move(self, power):
         """
@@ -80,8 +81,9 @@ class WheelMotor:
                     for i in range(abs(self.last_percentage), abs(power) - 1, -1):  # Loop 0 to 100 stepping dc by 5 each loop
                         self.pwm.ChangeDutyCycle(i)
                         GPIO.output(self.backward, GPIO.HIGH)
-
+            self.lock.acquire()
             self.last_percentage = power
+            self.lock.release()
 
             time.sleep(0.030)  # wait .001 seconds for timing
 

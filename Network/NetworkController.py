@@ -78,13 +78,10 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                # LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y))
-                # LJ_thread.start()
-                self.wheels_controller.move_wheels(x, y)
+                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y))
+                LJ_thread.start()
+                # self.wheels_controller.move_wheels(x, y)
                 # print("LeftJoystick: x : {}, y : {}, p : {}".format(x, y, p))
-                msg_from_server = "Data LeftJoystick received"
-                bytes_to_send = str.encode(msg_from_server)
-                self.send_message(bytes_to_send, self.client_address)
             case "RJ":
                 pass
                 # x = message["x"]
