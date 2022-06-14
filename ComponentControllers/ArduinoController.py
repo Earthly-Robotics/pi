@@ -14,7 +14,6 @@ class ArduinoController:
         """
         Creates a serial connection to the arduino
         """
-
         arduino = serial.Serial(self.port, self.baudrate, timeout=1)
         time.sleep(0.1)
         if arduino.isOpen():

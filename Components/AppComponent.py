@@ -11,6 +11,9 @@ class AppComponent:
         self.network_controller = network_controller
 
     def format_component_data(self) -> tuple:
+        """
+        Formats the data of the component into a tuple that can be sent to the app
+        """
         pass
 
     def update_app_data(self, ip):

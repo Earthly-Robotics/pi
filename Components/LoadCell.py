@@ -38,4 +38,4 @@ class LoadCell(AppComponent):
         A tuple with an even amount of elements.
         Must be formatted as followed: "x", "x_value".
         """
-        return "W", self.measure_weight()
+        return "Weight", self.measure_weight()

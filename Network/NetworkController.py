@@ -1,9 +1,11 @@
+import base64
 import platform
 import socket
 import json
 import threading
 import time
 
+from Components.Camera import Camera
 from Components.LoadCell import LoadCell
 from Components.GyroAccelerometer import GyroAccelerometer
 from Network.ConfigReader import config
@@ -11,13 +13,9 @@ from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 
 
-# from ComponentControllers.WheelsController import WheelsController
-
-
 class NetworkController:
     threads = list()
 
-    # def __init__(self, wheels_controller=WheelsController()):
     def __init__(self):
         match platform.system():
             case "Windows":
@@ -29,16 +27,15 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
-        # self.wheels_controller = wheels_controller
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
-        self.buffer_size = 1024
+        self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.LD_thread_id = 0
 
         self.load_cell = LoadCell(network_controller=self)
         self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
+        self.camera = Camera(network_controller=self)
 
     def setup_server(self):
         """
@@ -106,7 +103,7 @@ class NetworkController:
             case "VB":
                 msg_from_server = "Variable Button received"
                 bytes_to_send = str.encode(msg_from_server)
-                self.send_message(bytes_to_send, self.client_address)
+                self
             case "RJB":
                 pass
             case "LJB":
@@ -120,7 +117,11 @@ class NetworkController:
             case "BLUE_BLOCK":
                 self.logger.log("Start following block")
             case "CAMERA":
-                pass
+                self.camera.sending = not self.camera.sending
+                self.toggle_send(sending=self.camera.sending,
+                                 thread_name=self.camera.msg_type,
+                                 target=self.camera.update_app_data,
+                                 args=(self.client_address,))
             case "CAMERA_DEBUG":
                 pass
             case self.load_cell.msg_type:
@@ -167,7 +168,7 @@ class NetworkController:
         Sends message to the given client
 
         :param bytes_to_send: The bytes that need to be sent to the client
-        :type bytes_to_send: bytearray
+        :type bytes_to_send: bytes
         :param address: The address that needs to receive the message
         :type address: str
         :return:
