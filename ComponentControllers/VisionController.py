@@ -1,3 +1,5 @@
+from sys import platform
+
 import cv2 as cv
 import numpy as np
 from Components.Camera import Camera
@@ -56,9 +58,12 @@ class VisionController:
                     m = cv.moments(cnt)
                     center_x = int(m["m10"] / m["m00"])
                     self.error = self.cam_half_width - center_x
-        if self.DEBUG:
+        os = platform.system()
+        if self.DEBUG and os == "Windows":
             cv.imshow('result', img)
             cv.imshow('mask', mask)
+        elif self.DEBUG and os == "Linux":
+            pass
         self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
         self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
 
