@@ -16,8 +16,6 @@ async def main():
         server = NetworkController()
         thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
-        while True:
-            pass
     except KeyboardInterrupt:
         pass
     finally:

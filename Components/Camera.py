@@ -12,7 +12,7 @@ class Camera(AppComponent):
         self.msg_type = "CAMERA"
 
     def get_image(self):
-        if self.camera is not None:
+        if self.camera is not None and self.camera.isOpened():
             ret, frame = self.camera.read()
             return frame
         else:

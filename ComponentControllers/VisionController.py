@@ -54,6 +54,8 @@ class VisionController:
         while self.tracking:
             start = time.time()
             img = self.cam.get_image()
+            if img is None:
+                pass
             hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
             lower_mask = cv.inRange(hsv, self.lower_blue_low, self.upper_blue_low)
             upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
@@ -87,10 +89,13 @@ class VisionController:
         _, data = cv.imencode('.jpg', img, [cv.IMWRITE_JPEG_QUALITY, 50])
         data = base64.b64encode(data).decode()
         msg_obj = {
-            "MT": "BLUE_BLOCK",
-            "Blue_Block": data
+            "MT": "CAMERA_DEBUG",
+            "Camera_Debug": data
         }
         json_string = json.dumps(msg_obj)
         msg = str.encode(json_string)
         self.network_controller.send_message(msg, self.client_ip)
+
+    def stop_sending(self):
+        self.tracking = False
 

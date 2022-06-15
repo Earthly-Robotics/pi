@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import platform
 import socket
@@ -34,17 +35,32 @@ class NetworkController:
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
+        self.timeout = 20
+        self.timeout_start = 0
+        self.toggle_send_timeout = 20
+        self.toggle_send_timeout_start = 0
+        self.app_connected = False
 
-        try:
-            self.wheels_controller = WheelsController()
-            self.load_cell = LoadCell(network_controller=self)
-            self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
-            self.camera = Camera(network_controller=self)
-            self.vision_controller = VisionController(cam=self.camera,
-                                                      wheels_controller=self.wheels_controller,
-                                                      network_controller=self,)
-        except Exception as e:
-            self.logger.log("Couldn't create a component:\n{0}".format(e))
+        self.app_components = self.__init_components()
+
+    def __init_components(self):
+        app_components = []
+        self.wheels_controller = WheelsController()
+
+        # self.load_cell = LoadCell(network_controller=self)
+        # app_components.append(self.load_cell)
+
+        self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
+        app_components.append(self.accel_gyro_meter)
+
+        self.camera = Camera(network_controller=self)
+        app_components.append(self.camera)
+
+        self.vision_controller = VisionController(cam=self.camera,
+                                                  wheels_controller=self.wheels_controller,
+                                                  network_controller=self, )
+        app_components.append(self.vision_controller)
+        return app_components
 
     def setup_server(self):
         """
@@ -61,7 +77,8 @@ class NetworkController:
         print("Own IP: ", self.ip_address)
         print("Own Port: ", self.port)
         self.logger.log("Server started listening...")
-        while True:
+        self.timeout_start = time.time()
+        while time.time() < self.timeout_start + self.timeout:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
@@ -73,8 +90,10 @@ class NetworkController:
                 self.logger.log(str(err))
                 bytes_to_send = str.encode("Message wasn't a JSON string")
                 self.send_message(bytes_to_send, address)
+        self.stop_server()
 
     def __handle_message(self, message):
+        self.timeout_start = time.time()
         match (message["MT"]):
             case "LJ":
                 pass
@@ -113,6 +132,18 @@ class NetworkController:
                 pass
             case "LJB":
                 pass
+            case "PING":
+                self.toggle_send_timeout_start = time.time()
+                if not self.app_connected:
+                    for thread in self.threads:
+                        if thread.name == "PING":
+                            thread.join()
+                    self.app_connected = True
+                    self.logger.log("App connected")
+                    t = threading.Thread(target=self.check_toggle_send_connection)
+                    t.name = "PING"
+                    self.threads.append(t)
+                    t.start()
             case "LINE_DANCE":
                 pass
             case "SOLO_DANCE":
@@ -128,7 +159,6 @@ class NetworkController:
                                  target=self.vision_controller.start_track_blue_cube,
                                  args=(self.client_address,)
                                  )
-
             case self.camera.msg_type:
                 self.camera.sending = not self.camera.sending
                 self.logger.log("Received CAMERA. Will it start sending? {0}".format(
@@ -138,13 +168,13 @@ class NetworkController:
                                  target=self.camera.update_app_data,
                                  args=(self.client_address,)
                                  )
-            case self.load_cell.msg_type:
-                self.load_cell.sending = not self.load_cell.sending
-                self.toggle_send(sending=self.load_cell.sending,
-                                 thread_name=self.load_cell.msg_type,
-                                 target=self.load_cell.update_app_data,
-                                 args=(self.client_address,)
-                                 )
+            # case self.load_cell.msg_type:
+            #     self.load_cell.sending = not self.load_cell.sending
+            #     self.toggle_send(sending=self.load_cell.sending,
+            #                      thread_name=self.load_cell.msg_type,
+            #                      target=self.load_cell.update_app_data,
+            #                      args=(self.client_address,)
+            #                      )
             case self.accel_gyro_meter.msg_type:
                 self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
                 self.toggle_send(sending=self.accel_gyro_meter.sending,
@@ -168,6 +198,7 @@ class NetworkController:
         :type args: any or None
         :return:
         """
+        self.toggle_send_timeout_start = time.time()
         if sending is False:
             for thread in self.threads:
                 if thread.name == thread_name:
@@ -182,6 +213,42 @@ class NetworkController:
             t.name = thread_name
             self.threads.append(t)
             t.start()
+
+    def check_toggle_send_connection(self):
+        """
+        Resets all the components connected to the app when the app reaches timeout.
+        """
+        while time.time() < self.toggle_send_timeout_start + self.toggle_send_timeout:
+            time.sleep(4)
+            pass
+        self.logger.log("App disconnected")
+        self.__stop_components()
+        self.app_components = self.__init_components()
+        self.app_connected = False
+
+    def stop_server(self):
+        """
+        Cleans up the server.
+        """
+        self.logger.log("Stopping the server...")
+        self.timeout = 0
+        self.toggle_send_timeout = 0
+        self.app_connected = False
+        self.__stop_components()
+
+    def __stop_components(self):
+        """
+        Stops components from sending data.
+        """
+        for comp in self.app_components:
+            comp.stop_sending()
+            time.sleep(0.5)
+        for thread in self.threads:
+            if thread.name == "PING":
+                continue
+            thread.join()
+            self.threads.remove(thread)
+        self.camera.camera.release()
 
     def send_message(self, bytes_to_send, address):
         """

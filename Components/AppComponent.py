@@ -39,3 +39,6 @@ class AppComponent:
             msg = str.encode(json_string)
             self.network_controller.send_message(msg, ip)
             time.sleep(self.interval)
+
+    def stop_sending(self):
+        self.sending = False
