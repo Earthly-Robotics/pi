@@ -21,8 +21,6 @@ from threading import Thread
 class NetworkController:
     threads = list()
 
-    threads = list()
-
     def __init__(self):
         match platform.system():
             case "Windows":
