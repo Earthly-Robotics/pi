@@ -49,8 +49,8 @@ class NetworkController:
     def __init_components(self):
         app_components = []
 
-        # self.load_cell = LoadCell(network_controller=self)
-        # app_components.append(self.load_cell)
+        self.load_cell = LoadCell(network_controller=self)
+        app_components.append(self.load_cell)
 
         self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
         app_components.append(self.accel_gyro_meter)
@@ -177,13 +177,13 @@ class NetworkController:
                                  target=self.camera.update_app_data,
                                  args=(self.client_address,)
                                  )
-            # case self.load_cell.msg_type:
-            #     self.load_cell.sending = not self.load_cell.sending
-            #     self.toggle_send(sending=self.load_cell.sending,
-            #                      thread_name=self.load_cell.msg_type,
-            #                      target=self.load_cell.update_app_data,
-            #                      args=(self.client_address,)
-            #                      )
+            case self.load_cell.msg_type:
+                self.load_cell.sending = not self.load_cell.sending
+                self.toggle_send(sending=self.load_cell.sending,
+                                 thread_name=self.load_cell.msg_type,
+                                 target=self.load_cell.update_app_data,
+                                 args=(self.client_address,)
+                                 )
             case "BLUE_BLOCK_VALUES":
                 self.logger.log("Received BLUE_BLOCK_VALUES.")
                 new_values = self.vision_controller.update_values(message)
