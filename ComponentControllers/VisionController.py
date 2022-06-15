@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import threading
 import time
 import platform
 
@@ -79,8 +80,20 @@ class VisionController:
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
                 send_feed_task = asyncio.create_task(self.send_feed(img))
-            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
-            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
+                if self.error > 0:
+                    self.wheels_controller.turn_right()
+                    # thread = threading.Thread(target=self.wheels_controller.turn_right())
+                    # thread.start()
+                elif self.error < 0:
+                    self.wheels_controller.turn_left()
+                    # thread = threading.Thread(target=self.wheels_controller.turn_left())
+                    # thread.start()
+                else:
+                    self.wheels_controller.stop()
+                    # thread = threading.Thread(target=self.wheels_controller.stop())
+                    # thread.start()
+            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
+            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
             if self.DEBUG and os == "Linux":
                 await asyncio.gather(send_feed_task)
                 time.sleep(max(1. / 24 - (time.time() - start), 0))

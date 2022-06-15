@@ -57,10 +57,7 @@ class WheelsController:
         # power_right = 0
 
         if min_mid < x < max_mid and min_mid < y < max_mid:
-            per_x = 0
-            per_y = 0
-            self.motor_left.move(per_x)
-            self.motor_right.move(per_y)
+            self.stop()
             print("Stop")
         # forwards
         elif y > max_mid > x > min_mid:
@@ -124,5 +121,28 @@ class WheelsController:
         t1.join()
         t2.join()
 
+    def turn_right(self):
+        t1 = threading.Thread(target=self.motor_left.move, args=(100,))
+        t2 = threading.Thread(target=self.motor_right.move, args=(-100,))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+    def turn_left(self):
+        t1 = threading.Thread(target=self.motor_left.move, args=(-100,))
+        t2 = threading.Thread(target=self.motor_right.move, args=(100,))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+    def stop(self):
+        t1 = threading.Thread(target=self.motor_left.move, args=(0,))
+        t2 = threading.Thread(target=self.motor_right.move, args=(0,))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
 
 # https://sensorkit.joy-it.net/en/sensors/ky-023
