@@ -119,7 +119,7 @@ class NetworkController:
                 self.camera_feed.send_camera_feed(True, self)
             case "PS":
                 #move pattern
-                self.auto_seed_planter.plantSeed("SQ")
+                self.auto_seed_planter.plantSeed(5,10,2,3)
                 #ronddraaien servo   
             case _:
                 self.logger.log("Not an existing MessageType")

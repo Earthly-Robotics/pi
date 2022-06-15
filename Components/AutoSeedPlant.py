@@ -1,4 +1,4 @@
-import time
+from time import sleep
 from ComponentControllers.WheelsController import WheelsController
 
 #functies: vierkant rijden, rondje rijden, arduino servo start&stop
@@ -8,28 +8,29 @@ class AutoSeedPlant:
     def __init__(self):
         self.wheels_controller = WheelsController()
 
-    def plantSeeds(self, form):
-        match form:
-            case "SQ":
-                self.square()
-            case "CI":
-                self.circle()
-            case "ST":
-                self.straight()
+    def plantSeeds(self,rows,amount,sSpace,rSpace):
+        # To Do: hoeken berekenen met gyroscoop, space berekenen per sec
+        rows = rows
+        amountseeds = amount
+        seedspace = sSpace #space in seconds
+        rowspace = rSpace #space in seconds
+        for x in range(rows):
+            for y in range(amountseeds):
+                self.wheels_controller.goForward()
+                sleep(seedspace)
+                self.wheels_controller.stop()
+                #do servo plant thingy
 
-    def straight(self):
-        self.wheels_controller.goForward()
-
-    def square(self):
-        # To Do: forward, left, forward, left, forward, left, forward
-        turns = 3
-        self.wheels_controller.goForward()
-        for x in range(turns):
-            self.wheels_controller.goLeft()
-            time.sleep(3)
-            self.wheels_controller.goForward()
-            time.sleep(5)
-
-    def circle(self):
-        #To Do: turn left and forward together
-        self.wheels_controller.goLeftForward()
+            #turn around
+            if (x % 2) == 0:
+                self.wheels_controller.goRight()
+                self.wheels_controller.goForward()
+                sleep(rowspace)
+                self.wheels_controller.goRight()
+                self.wheels_controller.stop()
+            else:
+                self.wheels_controller.goLeft()
+                self.wheels_controller.goForward()
+                sleep(rowspace)
+                self.wheels_controller.goLeft()
+                self.wheels_controller.stop()
