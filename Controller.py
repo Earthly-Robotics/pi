@@ -1,32 +1,33 @@
-import time
-
-import RPi.GPIO as GPIO
-from Network.NetworkController import *
+import asyncio
+import cv2 as cv
 import threading
-# from ComponentControllers.VisionController import VisionController
-from ComponentControllers.WheelsController import WheelsController
+
+from ComponentControllers.VisionController import VisionController
+from ComponentControllers.ArduinoController import ArduinoController
+from Components.LoadCell import LoadCell
+from Components.GyroAccelerometer import GyroAccelerometer
+from Network.NetworkController import *
 
 
-def main():
-    # vision_controller = VisionController()
-    # camera_feed = CameraFeed(vision_controller.cam)
-    wheels_controller = WheelsController()
-    # server = NetworkController(wheels_controller, vision_controller, camera_feed)
-    server = NetworkController(wheels_controller)
-    server.setup_server()
-    # server = NetworkController()
-    # thread = threading.Thread(target=server.setup_server, daemon=True)
-    # thread.start()
-    # time.sleep(100)
-    # print("done with main")
+async def main():
+    # arduino_controller = arduino_setup()
+    # arduino_controller.close()
+    try:
+        server = NetworkController()
+        thread = threading.Thread(target=server.setup_server, daemon=True)
+        thread.start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if thread is not None:
+            thread.join()
 
-    # vision_controller = VisionController()
-    #
-    # while True:
-    #     vision_controller.get_camera_feed()
-    #     cv.waitKey(1)
+def arduino_setup():
+    controller = ArduinoController()
+    controller.connect()
+    asyncio.create_task(controller.read_message())
+    return controller
 
 
-
-main()
-
+if __name__ == "__main__":
+    asyncio.run(main())
