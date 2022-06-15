@@ -41,11 +41,11 @@ class NetworkController:
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
+        self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
 
     def __init_components(self):
         app_components = []
-        self.wheels_controller = WheelsController()
 
         # self.load_cell = LoadCell(network_controller=self)
         # app_components.append(self.load_cell)
@@ -125,13 +125,13 @@ class NetworkController:
                 bytes_to_send = str.encode(msg_from_server)
                 self.send_message(bytes_to_send, self.client_address)
             case "VB":
-                msg_from_server = "Variable Button received"
-                bytes_to_send = str.encode(msg_from_server)
-                self
+                pass
             case "RJB":
                 pass
             case "LJB":
                 pass
+            case "BATTERY":
+                self.logger.log("Received BATTERY.")
             case "PING":
                 self.toggle_send_timeout_start = time.time()
                 if not self.app_connected:
@@ -144,12 +144,17 @@ class NetworkController:
                     t.name = "PING"
                     self.threads.append(t)
                     t.start()
+                ping = {
+                    "MT": "PING"
+                }
+                data = json.dumps(ping)
+                self.send_message(data.encode(), self.client_address)
             case "LINE_DANCE":
                 pass
             case "SOLO_DANCE":
-                self.logger.log("Start Solo Dancing")
+                pass
             case "PLANT":
-                self.logger.log("Start Planting Seeds")
+                pass
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
@@ -175,6 +180,11 @@ class NetworkController:
             #                      target=self.load_cell.update_app_data,
             #                      args=(self.client_address,)
             #                      )
+            case "BLUE_BLOCK_VALUES":
+                self.logger.log("Received BLUE_BLOCK_VALUES.")
+                new_values = self.vision_controller.update_values(message)
+                data = json.dumps(new_values)
+                self.send_message(data.encode(), self.client_address)
             case self.accel_gyro_meter.msg_type:
                 self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
                 self.toggle_send(sending=self.accel_gyro_meter.sending,
@@ -182,8 +192,16 @@ class NetworkController:
                                  target=self.accel_gyro_meter.update_app_data,
                                  args=(self.client_address,)
                                  )
+            case "EMERGENCY_BUTTON":
+                self.logger.log("EMERGENCY_BUTTON received. Stopping all components")
+                self.__stop_components()
+                self.app_components = self.__init_components()
+                data = json.dumps({
+                    "MT": "MANUAL"
+                })
+                self.send_message(data.encode(), self.client_address)
             case _:
-                self.logger.log("Not an existing MessageType")
+                self.logger.log("{0} is not an existing MessageType".format(message["MT"]))
 
     def toggle_send(self, sending, thread_name, target, args=None):
         """
@@ -204,6 +222,11 @@ class NetworkController:
                 if thread.name == thread_name:
                     thread.join()
                     self.threads.remove(thread)
+
+            data = json.dumps({
+                "MT": "MANUAL"
+            })
+            self.send_message(data.encode(), self.client_address)
         else:
             if args is None:
                 t = threading.Thread(target=target)
@@ -213,6 +236,13 @@ class NetworkController:
             t.name = thread_name
             self.threads.append(t)
             t.start()
+
+            data = json.dumps(self.vision_controller.get_values())
+            self.send_message(data.encode(), self.client_address)
+            data = json.dumps({
+                "MT": thread_name
+            })
+            self.send_message(data.encode(), self.client_address)
 
     def check_toggle_send_connection(self):
         """
