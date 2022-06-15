@@ -1,11 +1,4 @@
-import asyncio
-import cv2 as cv
-import threading
-
-#from ComponentControllers.VisionController import VisionController
 #from ComponentControllers.ArduinoController import ArduinoController
-#from Components.LoadCell import LoadCell
-#from Components.GyroAccelerometer import GyroAccelerometer
 from Network.NetworkController import *
 
 
@@ -21,6 +14,7 @@ async def main():
     finally:
         if thread is not None:
             thread.join()
+
 
 def arduino_setup():
     controller = ArduinoController()
