@@ -25,17 +25,17 @@ class WheelMotor:
 
         pwm.start(0)
 
-        try:
-            GPIO.output(self.forward, GPIO.LOW)  # Set AIN2
-            GPIO.output(self.backward, GPIO.LOW)  # Set AIN2
-            print(power)
-            # for i in range(0, power, 5):  # Loop 0 to 100 stepping dc by 5 each loop
-            if power > 0:
-                pwm.ChangeDutyCycle(abs(power))
-                GPIO.output(self.forward, GPIO.HIGH)
-            if power < 0:
-                pwm.ChangeDutyCycle(abs(power))
-                GPIO.output(self.backward, GPIO.HIGH)
+        # try:
+        GPIO.output(self.forward, GPIO.LOW)  # Set AIN2
+        GPIO.output(self.backward, GPIO.LOW)  # Set AIN2
+        # print(power)
+        # for i in range(0, power, 5):  # Loop 0 to 100 stepping dc by 5 each loop
+        if power > 0:
+            pwm.ChangeDutyCycle(abs(power))
+            GPIO.output(self.forward, GPIO.HIGH)
+        if power < 0:
+            pwm.ChangeDutyCycle(abs(power))
+            GPIO.output(self.backward, GPIO.HIGH)
 
             # TODO: brake, high both
 
