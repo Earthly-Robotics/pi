@@ -1,15 +1,9 @@
-#from ComponentControllers.ArduinoController import ArduinoController
+from ComponentControllers.ArduinoController import ArduinoController
 from Network.NetworkController import *
 
-
 async def main():
-    # arduino_controller = arduino_setup()
-    # arduino_controller.close()
     try:
-        vision_controller = VisionController()
-        camera_feed = CameraFeed(vision_controller.cam,vision_controller)
-        wheels_controller = WheelsController()
-        server = NetworkController(camera_feed, wheels_controller)
+        server = NetworkController()
         thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
     except KeyboardInterrupt:

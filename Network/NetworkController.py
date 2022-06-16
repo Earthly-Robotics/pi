@@ -11,19 +11,16 @@ from ComponentControllers.WheelsController import WheelsController
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
 from Components.GyroAccelerometer import GyroAccelerometer
+from Components.AutoSeedPlant import AutoSeedPlant
 from Network.ConfigReader import config
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
-from ComponentControllers.WheelsController import WheelsController
-from ComponentControllers.VisionController import VisionController
-from Components.AutoSeedPlant import AutoSeedPlant
-import cv2 as cv
-import numpy as np
+
 
 class NetworkController:
     threads = list()
 
-    def __init__(self,camerafeed , wheels_controller=WheelsController()):
+    def __init__(self):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -34,17 +31,11 @@ class NetworkController:
             case _:
                 self.logger = FileLogger()
                 self.logger.log("System not recognized")
-        self.auto_seed_plant = AutoSeedPlant()
-        self.camera_feed = camerafeed
-        self.wheels_controller = WheelsController()
-        # self.vision_controller = vision_controller
-        self.wheels_controller = wheels_controller
         self.ip_address = self.params['ip_address']
         self.port = int(self.params['port'])
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.i = 0
         self.timeout = 20
         self.timeout_start = 0
         self.toggle_send_timeout = 20
@@ -53,6 +44,7 @@ class NetworkController:
 
         self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
+        self.auto_seed_plant = AutoSeedPlant()
 
     def __init_components(self):
         app_components = []
@@ -90,7 +82,6 @@ class NetworkController:
         self.timeout_start = time.time()
         while time.time() < self.timeout_start + self.timeout:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
-
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
@@ -165,7 +156,7 @@ class NetworkController:
             case "SOLO_DANCE":
                 pass
             case "PLANT":
-                pass
+                AutoSeedPlant.plantSeeds(2,4,2,2) #rows,seeds,distance in seconds till next row, distance in sec till next seed
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
@@ -217,7 +208,6 @@ class NetworkController:
     def toggle_send(self, sending, thread_name, target, args=None):
         """
         Toggle continuously sending of sensor data on another thread.
-
         :param sending: If false, stops sending of the data and joins the thread.
         :type sending: bool
         :param thread_name: The name of the thread
@@ -294,7 +284,6 @@ class NetworkController:
     def send_message(self, bytes_to_send, address):
         """
         Sends message to the given client
-
         :param bytes_to_send: The bytes that need to be sent to the client
         :type bytes_to_send: bytes
         :param address: The address that needs to receive the message
