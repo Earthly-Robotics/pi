@@ -4,7 +4,7 @@ import time
 
 from ComponentControllers.ServoController import ServoController
 from Components.WheelMotor import WheelMotor
-from Utility import get_angle
+from Utility import calculate_angle
 from time import sleep
 import math
 
@@ -39,50 +39,50 @@ class WheelsController:
         elif y > max_mid > x > min_mid:
             per_x = 0
             per_y = math.floor(((y - max_mid) / (top - max_mid)) * 100)
-            self.angle = get_angle(0, y, 0, 2047)
+            self.angle = calculate_angle(0, y, 0, 2047)
             self.move(per_x, per_y, limiter)
 
         # backwards
         elif y < min_mid < x < max_mid:
             per_x = 0
             per_y = math.floor((y - min_mid) / (bottom + min_mid) * 100)
-            self.angle = get_angle(0, y, 0, -2047)
+            self.angle = calculate_angle(0, y, 0, -2047)
             self.move(per_x, per_y, limiter)
         # left
         elif x < min_mid < y < max_mid:
             per_x = math.floor((x - min_mid) / (bottom + min_mid) * 100) * -1
             per_y = 0
-            self.angle = get_angle(x, 0, 0, 2047)
+            self.angle = calculate_angle(x, 0, 0, 2047)
             self.move(per_x, per_y, limiter)
         # right
         elif x > max_mid > y > min_mid:
             per_x = math.floor((x - max_mid) / (top - max_mid) * 100) * -1
             per_y = 0
-            self.angle = get_angle(x, 0, 0, 2047)
+            self.angle = calculate_angle(x, 0, 0, 2047)
             self.move(per_x, per_y, limiter)
         # top-right
         elif x > max_mid and y > max_mid:
             per_x = math.floor((x - max_mid) / (top - max_mid) * 100) * -1
             per_y = math.floor((y - max_mid) / (top - max_mid) * 100)
-            self.angle = get_angle(x, y, 0, 2047)
+            self.angle = calculate_angle(x, y, 0, 2047)
             self.move(per_x, per_y, limiter)
         # top-left
         elif x < min_mid and y > max_mid:
             per_x = math.floor((x - min_mid) / (bottom + min_mid) * 100) * -1
             per_y = math.floor((y - max_mid) / (top - max_mid) * 100)
-            self.angle = get_angle(x, y, 0, 2047)
+            self.angle = calculate_angle(x, y, 0, 2047)
             self.move(per_x, per_y, limiter)
         # bottom-right
         elif x > max_mid and y < min_mid:
             per_x = math.floor((x - max_mid) / (top - max_mid) * 100) * -1
             per_y = math.floor((y - min_mid) / (bottom + min_mid) * 100)
-            self.angle = get_angle(x, y, 0, -2047)
+            self.angle = calculate_angle(x, y, 0, -2047)
             self.move(per_x, per_y, limiter)
         # bottom-left
         elif x < min_mid and y < min_mid:
             per_x = math.floor((x - min_mid) / (bottom + min_mid) * 100) * -1
             per_y = math.floor((y - min_mid) / (bottom + min_mid) * 100)
-            self.angle = get_angle(x, y, 0, -2047)
+            self.angle = calculate_angle(x, y, 0, -2047)
             self.move(per_x, per_y, limiter)
 
     def move(self, per_x, per_y, limiter):
