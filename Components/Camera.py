@@ -5,11 +5,12 @@ from Components.AppComponent import AppComponent
 
 
 class Camera(AppComponent):
-
     def __init__(self, network_controller):
         super().__init__(network_controller)
-        self.camera = cv.VideoCapture(0)
         self.msg_type = "CAMERA"
+        self.camera = cv.VideoCapture(0)
+        if not self.camera.isOpened():
+            raise Exception("Couldn't open camera")
 
     def get_image(self):
         if self.camera is not None and self.camera.isOpened():

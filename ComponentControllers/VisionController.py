@@ -40,12 +40,13 @@ class VisionController:
     error = 0
     cam_half_width = 0
 
-    def __init__(self, cam, wheels_controller, network_controller):
-        self.client_ip = None
+    def __init__(self, cam, wheels_controller=None, network_controller=None):
         self.cam = cam
+        self.client_ip = None
         self.wheels_controller = wheels_controller
         self.network_controller = network_controller
-        self.cam_half_width = self.cam.get_width() / 2
+        if self.cam is not None:
+            self.cam_half_width = self.cam.get_width() / 2
 
     def start_track_blue_cube(self, client_ip):
         asyncio.run(self.track_blue_cube(client_ip))
@@ -54,6 +55,8 @@ class VisionController:
         self.client_ip = client_ip
         while self.tracking:
             start = time.time()
+            if self.cam is None:
+                continue
             img = self.cam.get_image()
             if img is None:
                 continue
@@ -108,19 +111,19 @@ class VisionController:
         parsed = self.__int_try_parse(msg["Lower_Area"])
         if parsed[1]:
             self.lower_area = parsed[0]
-            print("lower_area: ", self.lower_area)
+            # print("lower_area: ", self.lower_area)
         parsed = self.__int_try_parse(msg["Upper_Area"])
         if parsed[1]:
             self.upper_area = parsed[0]
-            print("upper_area: ", self.lower_area)
+            # print("upper_area: ", self.upper_area)
         parsed = self.__int_try_parse(msg["Lower_Shape"])
         if parsed[1]:
             self.lower_shape = parsed[0]
-            print("lower_shape: ", self.lower_area)
+            # print("lower_shape: ", self.lower_shape)
         parsed = self.__int_try_parse(msg["Upper_Shape"])
         if parsed[1]:
             self.upper_shape = parsed[0]
-            print("upper_shape: ", self.lower_area)
+            # print("upper_shape: ", self.upper_shape)
         return self.get_values()
 
     def get_values(self):
