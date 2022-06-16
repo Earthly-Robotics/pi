@@ -9,12 +9,12 @@ from Logger.FileLogger import FileLogger
 
 
 async def main():
-    # arduino_controller = arduino_setup()
-    # arduino_controller.close()
+    arduino_controller = arduino_setup()
+    arduino_controller.close()
     thread = None
     try:
         server = NetworkController()
-        thread = threading.Thread(target=server.setup_server, daemon=True)
+        thread = threading.Thread(target=server.setup_server, daemon=True, args=(arduino_controller,))
         thread.start()
     except KeyboardInterrupt:
         pass

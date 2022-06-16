@@ -29,7 +29,5 @@ class ServoController:
 
             return output
 
-    def power_servo(self, y, profile):
+    def power_servo(self, y, string):
         result = self.calculate_percentage(y)
-        if profile == 0:
-            pass  # vanwege tandwielen x2

@@ -22,7 +22,7 @@ from threading import Thread
 class NetworkController:
     threads = list()
 
-    def __init__(self):
+    def __init__(self, arduino_controller):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -46,8 +46,10 @@ class NetworkController:
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
-        self.wheels_controller = WheelsController()
-        self.servo_controller = ServoController()
+        self.arduino_controller = arduino_controller
+        self.servo_controller = ServoController(arduino_controller)
+        self.wheels_controller = WheelsController(self.servo_controller)
+
         self.app_components = self.__init_components()
 
     def __init_components(self):
