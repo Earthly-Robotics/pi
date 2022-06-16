@@ -1,8 +1,11 @@
 import asyncio
 import threading
+import platform
 import RPi.GPIO as GPIO
 from Network.NetworkController import NetworkController
-#from ComponentControllers.ArduinoController import ArduinoController
+from ComponentControllers.ArduinoController import ArduinoController
+from Logger.ConsoleLogger import ConsoleLogger
+from Logger.FileLogger import FileLogger
 
 
 async def main():

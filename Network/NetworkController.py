@@ -6,6 +6,7 @@ import json
 import threading
 import time
 
+from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
 from ComponentControllers.WheelsController import WheelsController
 from Components.Camera import Camera
@@ -38,6 +39,7 @@ class NetworkController:
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
         self.limiter = 1
+        self.rotate_magnet = False
         self.timeout = 600
         self.timeout_start = 0
         self.toggle_send_timeout = 600
@@ -45,6 +47,7 @@ class NetworkController:
         self.app_connected = False
 
         self.wheels_controller = WheelsController()
+        self.servo_controller = ServoController()
         self.app_components = self.__init_components()
 
     def __init_components(self):
@@ -109,16 +112,11 @@ class NetworkController:
                 LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y, self.limiter))
                 LJ_thread.start()
             case "RJ":
-                pass
-                # x = message["x"]
-                # y = message["y"]
-                # p = message["p"]
-                # if self.profile != p:
-                #     self.profile = p
-                # self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
-                # msg_from_server = "Data RightJoystick received"
-                # bytes_to_send = str.encode(msg_from_server)
-                # self.send_message(bytes_to_send, self.client_address)
+                y = message["y"]
+                p = message["p"]
+                if self.profile != p:
+                    self.profile = p
+                self.servo_controller.power_servo(y, self.profile)
             case "PB":
                 pass
                 # p = message["p"]
@@ -127,7 +125,11 @@ class NetworkController:
                 # bytes_to_send = str.encode(msg_from_server)
                 # self.send_message(bytes_to_send, self.client_address)
             case "AB":
-                self.limiter = message["l"]
+                if self.profile == 0:
+                    self.limiter = message["l"]
+                else:
+                    self.rotate_magnet = not self.rotate_magnet
+                    self.servo_controller.control_magnet(self.rotate_magnet)
             case "RJB":
                 pass
             case "LJB":
