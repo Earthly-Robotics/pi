@@ -21,7 +21,6 @@ from threading import Thread
 class NetworkController:
     threads = list()
 
-    threads = list()
     def __init__(self):
         match platform.system():
             case "Windows":
@@ -38,20 +37,20 @@ class NetworkController:
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.timeout = 20
+        self.timeout = 600
         self.timeout_start = 0
-        self.toggle_send_timeout = 20
+        self.toggle_send_timeout = 600
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
+        self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
 
     def __init_components(self):
         app_components = []
-        self.wheels_controller = WheelsController()
 
-        # self.load_cell = LoadCell(network_controller=self)
-        # app_components.append(self.load_cell)
+        self.load_cell = LoadCell(network_controller=self)
+        app_components.append(self.load_cell)
 
         self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
         app_components.append(self.accel_gyro_meter)
@@ -87,7 +86,6 @@ class NetworkController:
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
-            print("Client address: ", address)
 
             try:
                 message = json.loads(message)
@@ -135,6 +133,8 @@ class NetworkController:
                 pass
             case "LJB":
                 pass
+            case "BATTERY":
+                self.logger.log("Received BATTERY.")
             case "PING":
                 self.toggle_send_timeout_start = time.time()
                 if not self.app_connected:
@@ -147,12 +147,17 @@ class NetworkController:
                     t.name = "PING"
                     self.threads.append(t)
                     t.start()
+                ping = {
+                    "MT": "PING"
+                }
+                data = json.dumps(ping)
+                self.send_message(data.encode(), self.client_address)
             case "LINE_DANCE":
                 pass
             case "SOLO_DANCE":
-                self.logger.log("Start Solo Dancing")
+                pass
             case "PLANT":
-                self.logger.log("Start Planting Seeds")
+                pass
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
@@ -171,13 +176,19 @@ class NetworkController:
                                  target=self.camera.update_app_data,
                                  args=(self.client_address,)
                                  )
-            # case self.load_cell.msg_type:
-            #     self.load_cell.sending = not self.load_cell.sending
-            #     self.toggle_send(sending=self.load_cell.sending,
-            #                      thread_name=self.load_cell.msg_type,
-            #                      target=self.load_cell.update_app_data,
-            #                      args=(self.client_address,)
-            #                      )
+            case self.load_cell.msg_type:
+                self.logger.log("Received LOAD_CELL")
+                self.load_cell.sending = not self.load_cell.sending
+                self.toggle_send(sending=self.load_cell.sending,
+                                 thread_name=self.load_cell.msg_type,
+                                 target=self.load_cell.update_app_data,
+                                 args=(self.client_address,)
+                                 )
+            case "BLUE_BLOCK_VALUES":
+                self.logger.log("Received BLUE_BLOCK_VALUES.")
+                new_values = self.vision_controller.update_values(message)
+                data = json.dumps(new_values)
+                self.send_message(data.encode(), self.client_address)
             case self.accel_gyro_meter.msg_type:
                 self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
                 self.toggle_send(sending=self.accel_gyro_meter.sending,
@@ -185,8 +196,16 @@ class NetworkController:
                                  target=self.accel_gyro_meter.update_app_data,
                                  args=(self.client_address,)
                                  )
+            case "EMERGENCY_BUTTON":
+                self.logger.log("EMERGENCY_BUTTON received. Stopping all components")
+                self.__stop_components()
+                self.app_components = self.__init_components()
+                data = json.dumps({
+                    "MT": "MANUAL"
+                })
+                self.send_message(data.encode(), self.client_address)
             case _:
-                self.logger.log("Not an existing MessageType")
+                self.logger.log("{0} is not an existing MessageType".format(message["MT"]))
 
     def toggle_send(self, sending, thread_name, target, args=None):
         """
@@ -207,6 +226,11 @@ class NetworkController:
                 if thread.name == thread_name:
                     thread.join()
                     self.threads.remove(thread)
+
+            data = json.dumps({
+                "MT": "MANUAL"
+            })
+            self.send_message(data.encode(), self.client_address)
         else:
             if args is None:
                 t = threading.Thread(target=target)
@@ -217,13 +241,20 @@ class NetworkController:
             self.threads.append(t)
             t.start()
 
+            data = json.dumps(self.vision_controller.get_values())
+            self.send_message(data.encode(), self.client_address)
+            data = json.dumps({
+                "MT": thread_name
+            })
+            self.send_message(data.encode(), self.client_address)
+
     def check_toggle_send_connection(self):
         """
         Resets all the components connected to the app when the app reaches timeout.
         """
         while time.time() < self.toggle_send_timeout_start + self.toggle_send_timeout:
             time.sleep(4)
-            pass
+            continue
         self.logger.log("App disconnected")
         self.__stop_components()
         self.app_components = self.__init_components()
@@ -252,6 +283,7 @@ class NetworkController:
             thread.join()
             self.threads.remove(thread)
         self.camera.camera.release()
+        self.wheels_controller.stop()
 
     def send_message(self, bytes_to_send, address):
         """

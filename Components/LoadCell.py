@@ -5,12 +5,12 @@ from Components.AppComponent import AppComponent
 
 
 class LoadCell(AppComponent):
-    data_pin = 6
-    clock_pin = 5
+    data_pin = 5
+    clock_pin = 6
     reference_unit = -1103
     offset = -108042
 
-    def __init__(self, network_controller, data_pin=6, clock_pin=5, reference_unit=-1103, offset=-108042):
+    def __init__(self, network_controller, data_pin=5, clock_pin=6, reference_unit=-1103, offset=-108042):
         super().__init__(network_controller)
         self.msg_type = "WEIGHT"
         try:
@@ -32,7 +32,9 @@ class LoadCell(AppComponent):
         -------
             The weight as a string. "x.xx g"
         """
-        return self.hx.weight(samples)
+        w = self.hx.weight(samples)
+        f = float(w)
+        return round(abs(f), 2)
 
     def format_component_data(self) -> tuple:
         """

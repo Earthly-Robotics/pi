@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import threading
 import time
 import platform
 
@@ -63,6 +64,7 @@ class VisionController:
             kernel = np.ones((9, 9), np.uint8)
             mask = cv.erode(mask, kernel)
             contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+            self.error = 0
             for cnt in contours:
                 area = cv.contourArea(cnt)
                 if self.lower_area < area < self.upper_area:
@@ -79,11 +81,17 @@ class VisionController:
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
                 send_feed_task = asyncio.create_task(self.send_feed(img))
-            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
-            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
+                if self.error > 0:
+                    self.wheels_controller.turn_right()
+                elif self.error < 0:
+                    self.wheels_controller.turn_left()
+                else:
+                    self.wheels_controller.stop()
+            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
+            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
             if self.DEBUG and os == "Linux":
                 await asyncio.gather(send_feed_task)
-                time.sleep(max(1./24 - (time.time() - start), 0))
+                time.sleep(max(1. / 24 - (time.time() - start), 0))
 
     async def send_feed(self, img):
         _, data = cv.imencode('.jpg', img, [cv.IMWRITE_JPEG_QUALITY, 50])
@@ -96,6 +104,39 @@ class VisionController:
         msg = str.encode(json_string)
         self.network_controller.send_message(msg, self.client_ip)
 
+    def update_values(self, msg):
+        parsed = self.__int_try_parse(msg["Lower_Area"])
+        if parsed[1]:
+            self.lower_area = parsed[0]
+            print("lower_area: ", self.lower_area)
+        parsed = self.__int_try_parse(msg["Upper_Area"])
+        if parsed[1]:
+            self.upper_area = parsed[0]
+            print("upper_area: ", self.lower_area)
+        parsed = self.__int_try_parse(msg["Lower_Shape"])
+        if parsed[1]:
+            self.lower_shape = parsed[0]
+            print("lower_shape: ", self.lower_area)
+        parsed = self.__int_try_parse(msg["Upper_Shape"])
+        if parsed[1]:
+            self.upper_shape = parsed[0]
+            print("upper_shape: ", self.lower_area)
+        return self.get_values()
+
+    def get_values(self):
+        return {
+            "MT": "BLUE_BLOCK_VALUES",
+            "Lower_Area": self.lower_area,
+            "Upper_Area": self.upper_area,
+            "Lower_Shape": self.lower_shape,
+            "Upper_Shape": self.upper_shape
+        }
+
+    def __int_try_parse(self, value):
+        try:
+            return int(value), True
+        except ValueError:
+            return value, False
+
     def stop_sending(self):
         self.tracking = False
-

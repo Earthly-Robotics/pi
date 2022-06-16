@@ -1,4 +1,6 @@
 import base64
+import time
+
 import cv2 as cv
 
 from Components.AppComponent import AppComponent
@@ -27,7 +29,9 @@ class Camera(AppComponent):
             return None
 
     def format_component_data(self) -> tuple:
+        start = time.time()
         frame = self.get_image()
         _, buffer = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
         buffer = base64.b64encode(buffer).decode()
+        self.interval = max(1. / 24 - (time.time() - start), 0)
         return "Camera", buffer
