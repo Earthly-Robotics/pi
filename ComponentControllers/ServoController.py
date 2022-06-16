@@ -1,4 +1,4 @@
-import math
+from Utility import calculate_percentage
 
 
 class ServoController:
@@ -16,18 +16,8 @@ class ServoController:
             magnet_status = False
             self.arduino_controller.send_message("magneet;-30")
 
-    def __calculate_percentage(self, y):
-        # forwards
-        if y > 0 and y <= 2047:
-            percentage_pos = math.floor(((y) / 2047) * 100)
-            output = math.floor((percentage_pos))
-
-        # backwards
-        elif y < -400 and y >= -2047:
-            percentage_pos = math.floor(((y + 400) / 1647) * 100)
-            output = math.floor((percentage_pos))
-
-            return output
-
     def power_servo(self, y, string):
-        result = self.calculate_percentage(y)
+        result = calculate_percentage(y)
+
+    def sendMessage(self, message):
+        self.arduino_controller.send_message()

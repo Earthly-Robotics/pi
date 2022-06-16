@@ -19,6 +19,7 @@ class WheelsController:
         self.per_x = 0
         self.per_y = 0
         self.angle = 0
+        self.last_angle = 0
         
     def move_wheels(self, x, y, limiter):
         """
@@ -52,7 +53,7 @@ class WheelsController:
         elif x < min_mid < y < max_mid:
             per_x = math.floor((x - min_mid) / (bottom + min_mid) * 100) * -1
             per_y = 0
-            self.angle = calculate_angle(x, 0, 0, 2047)
+            self.angle = calculate_angle(x, 0, 0, 2047) * -1
             self.move(per_x, per_y, limiter)
         # right
         elif x > max_mid > y > min_mid:
@@ -76,13 +77,13 @@ class WheelsController:
         elif x > max_mid and y < min_mid:
             per_x = math.floor((x - max_mid) / (top - max_mid) * 100) * -1
             per_y = math.floor((y - min_mid) / (bottom + min_mid) * 100)
-            self.angle = calculate_angle(x, y, 0, -2047)
+            self.angle = 90 - calculate_angle(x, y, 0, -2047)
             self.move(per_x, per_y, limiter)
         # bottom-left
         elif x < min_mid and y < min_mid:
             per_x = math.floor((x - min_mid) / (bottom + min_mid) * 100) * -1
             per_y = math.floor((y - min_mid) / (bottom + min_mid) * 100)
-            self.angle = calculate_angle(x, y, 0, -2047)
+            self.angle = 90 - calculate_angle(x, y, 0, -2047)
             self.move(per_x, per_y, limiter)
 
     def move(self, per_x, per_y, limiter):
@@ -90,10 +91,15 @@ class WheelsController:
         right_minus_left = ((100 - abs(per_y)) * (per_x / 100) + per_x)  # 0
         power_left_motor = (right_plus_left - right_minus_left) / 2
         power_right_motor = (right_plus_left + right_minus_left) / 2
+        if self.angle >= self.last_angle():
+            for i in range (self.last_angle, self.angle, 1):
+                self.servo_controller.send_message("back wheel;" + str(i))
+        else:
+            for i in range(self.last_angle, self.angle, -1):
+                self.servo_controller.send_message("back wheel;" + str(i))
         move_left_motor = asyncio.create_task(self.motor_left.move(math.floor(power_left_motor / limiter)))
         self.motor_right.move(math.floor(power_right_motor / limiter))
         await move_left_motor
-
 
     def turn_right(self):
         self.motor_left.move(math.floor(50))
