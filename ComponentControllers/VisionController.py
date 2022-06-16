@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import threading
 import time
 import platform
 
@@ -63,6 +64,7 @@ class VisionController:
             kernel = np.ones((9, 9), np.uint8)
             mask = cv.erode(mask, kernel)
             contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+            self.error = 0
             for cnt in contours:
                 area = cv.contourArea(cnt)
                 if self.lower_area < area < self.upper_area:
@@ -79,8 +81,14 @@ class VisionController:
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
                 send_feed_task = asyncio.create_task(self.send_feed(img))
-            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)
-            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)
+                if self.error > 0:
+                    self.wheels_controller.turn_right()
+                elif self.error < 0:
+                    self.wheels_controller.turn_left()
+                else:
+                    self.wheels_controller.stop()
+            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
+            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
             if self.DEBUG and os == "Linux":
                 await asyncio.gather(send_feed_task)
                 time.sleep(max(1. / 24 - (time.time() - start), 0))

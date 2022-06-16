@@ -14,6 +14,8 @@ from Components.GyroAccelerometer import GyroAccelerometer
 from Network.ConfigReader import config
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
+from ComponentControllers.WheelsController import WheelsController
+from threading import Thread
 
 
 class NetworkController:
@@ -35,9 +37,9 @@ class NetworkController:
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.timeout = 20
+        self.timeout = 600
         self.timeout_start = 0
-        self.toggle_send_timeout = 20
+        self.toggle_send_timeout = 600
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
@@ -47,8 +49,8 @@ class NetworkController:
     def __init_components(self):
         app_components = []
 
-        # self.load_cell = LoadCell(network_controller=self)
-        # app_components.append(self.load_cell)
+        self.load_cell = LoadCell(network_controller=self)
+        app_components.append(self.load_cell)
 
         self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
         app_components.append(self.accel_gyro_meter)
@@ -58,7 +60,7 @@ class NetworkController:
 
         self.vision_controller = VisionController(cam=self.camera,
                                                   wheels_controller=self.wheels_controller,
-                                                  network_controller=self, )
+                                                  network_controller=self)
         app_components.append(self.vision_controller)
         return app_components
 
@@ -80,9 +82,11 @@ class NetworkController:
         self.timeout_start = time.time()
         while time.time() < self.timeout_start + self.timeout:
             bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
+
             try:
                 message = json.loads(message)
                 self.__handle_message(message)
@@ -96,21 +100,19 @@ class NetworkController:
         self.timeout_start = time.time()
         match (message["MT"]):
             case "LJ":
-                pass
-                # x = message["x"]
-                # y = message["y"]
-                # p = message["p"]
-                # if self.profile != p:
-                #     self.profile = p
-                # # self.wheels_controller.move_wheels(x, y)
-                # # print("LeftJoystick: x : {}, y : {}".format(x, y))
-                # msg_from_server = "Data LeftJoystick received"
-                # bytes_to_send = str.encode(msg_from_server)
-                # self.send_message(bytes_to_send, self.client_address)
+                x = message["x"]
+                y = message["y"]
+                p = message["p"]
+                if self.profile != p:
+                    self.profile = p
+                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y))
+                LJ_thread.start()
+                # self.wheels_controller.move_wheels(x, y)
+                # print("LeftJoystick: x : {}, y : {}, p : {}".format(x, y, p))
             case "RJ":
                 pass
                 # x = message["x"]
-                # y = message["Y"]
+                # y = message["y"]
                 # p = message["p"]
                 # if self.profile != p:
                 #     self.profile = p
@@ -119,11 +121,12 @@ class NetworkController:
                 # bytes_to_send = str.encode(msg_from_server)
                 # self.send_message(bytes_to_send, self.client_address)
             case "PB":
-                p = message["p"]
-                self.profile = p
-                msg_from_server = "Profile Button received"
-                bytes_to_send = str.encode(msg_from_server)
-                self.send_message(bytes_to_send, self.client_address)
+                pass
+                # p = message["p"]
+                # self.profile = p
+                # msg_from_server = "Profile Button received"
+                # bytes_to_send = str.encode(msg_from_server)
+                # self.send_message(bytes_to_send, self.client_address)
             case "VB":
                 pass
             case "RJB":
@@ -173,13 +176,14 @@ class NetworkController:
                                  target=self.camera.update_app_data,
                                  args=(self.client_address,)
                                  )
-            # case self.load_cell.msg_type:
-            #     self.load_cell.sending = not self.load_cell.sending
-            #     self.toggle_send(sending=self.load_cell.sending,
-            #                      thread_name=self.load_cell.msg_type,
-            #                      target=self.load_cell.update_app_data,
-            #                      args=(self.client_address,)
-            #                      )
+            case self.load_cell.msg_type:
+                self.logger.log("Received LOAD_CELL")
+                self.load_cell.sending = not self.load_cell.sending
+                self.toggle_send(sending=self.load_cell.sending,
+                                 thread_name=self.load_cell.msg_type,
+                                 target=self.load_cell.update_app_data,
+                                 args=(self.client_address,)
+                                 )
             case "BLUE_BLOCK_VALUES":
                 self.logger.log("Received BLUE_BLOCK_VALUES.")
                 new_values = self.vision_controller.update_values(message)
@@ -250,7 +254,7 @@ class NetworkController:
         """
         while time.time() < self.toggle_send_timeout_start + self.toggle_send_timeout:
             time.sleep(4)
-            pass
+            continue
         self.logger.log("App disconnected")
         self.__stop_components()
         self.app_components = self.__init_components()
@@ -279,6 +283,7 @@ class NetworkController:
             thread.join()
             self.threads.remove(thread)
         self.camera.camera.release()
+        self.wheels_controller.stop()
 
     def send_message(self, bytes_to_send, address):
         """

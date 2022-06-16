@@ -1,10 +1,14 @@
+import asyncio
+import threading
+import RPi.GPIO as GPIO
+from Network.NetworkController import NetworkController
 #from ComponentControllers.ArduinoController import ArduinoController
-from Network.NetworkController import *
 
 
 async def main():
     # arduino_controller = arduino_setup()
     # arduino_controller.close()
+    thread = None
     try:
         server = NetworkController()
         thread = threading.Thread(target=server.setup_server, daemon=True)
@@ -36,3 +40,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.log("Keyboard Interrupt!")
+    except Exception as e:
+        logger.log("Something went wrong in MAIN: {0}".format(e))
+    finally:
+        GPIO.cleanup()
