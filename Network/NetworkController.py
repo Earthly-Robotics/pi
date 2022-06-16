@@ -37,6 +37,7 @@ class NetworkController:
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
+        self.limiter = 1
         self.timeout = 600
         self.timeout_start = 0
         self.toggle_send_timeout = 600
@@ -105,10 +106,8 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y))
+                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y, self.limiter))
                 LJ_thread.start()
-                # self.wheels_controller.move_wheels(x, y)
-                # print("LeftJoystick: x : {}, y : {}, p : {}".format(x, y, p))
             case "RJ":
                 pass
                 # x = message["x"]
@@ -127,8 +126,8 @@ class NetworkController:
                 # msg_from_server = "Profile Button received"
                 # bytes_to_send = str.encode(msg_from_server)
                 # self.send_message(bytes_to_send, self.client_address)
-            case "VB":
-                pass
+            case "AB":
+                self.limiter = message["l"]
             case "RJB":
                 pass
             case "LJB":
