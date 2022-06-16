@@ -37,9 +37,9 @@ class NetworkController:
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         self.profile = 0
-        self.timeout = 20
+        self.timeout = 600
         self.timeout_start = 0
-        self.toggle_send_timeout = 20
+        self.toggle_send_timeout = 600
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
@@ -86,7 +86,6 @@ class NetworkController:
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
             self.client_address = address
-            print("Client address: ", address)
 
             try:
                 message = json.loads(message)
@@ -178,6 +177,7 @@ class NetworkController:
                                  args=(self.client_address,)
                                  )
             case self.load_cell.msg_type:
+                self.logger.log("Received LOAD_CELL")
                 self.load_cell.sending = not self.load_cell.sending
                 self.toggle_send(sending=self.load_cell.sending,
                                  thread_name=self.load_cell.msg_type,
@@ -254,7 +254,7 @@ class NetworkController:
         """
         while time.time() < self.toggle_send_timeout_start + self.toggle_send_timeout:
             time.sleep(4)
-            pass
+            continue
         self.logger.log("App disconnected")
         self.__stop_components()
         self.app_components = self.__init_components()
@@ -283,6 +283,7 @@ class NetworkController:
             thread.join()
             self.threads.remove(thread)
         self.camera.camera.release()
+        self.wheels_controller.stop()
 
     def send_message(self, bytes_to_send, address):
         """

@@ -58,91 +58,66 @@ class WheelsController:
 
         if min_mid < x < max_mid and min_mid < y < max_mid:
             self.stop()
-            print("Stop")
         # forwards
         elif y > max_mid > x > min_mid:
             per_x = 0
             per_y = math.floor(((y - max_mid) / (Top - max_mid)) * 100)
             self.move(per_x, per_y)
-            print("forwards")
 
         # backwards
         elif y < min_mid < x < max_mid:
             per_x = 0
             per_y = math.floor((y - min_mid) / (Bottom + min_mid) * 100)
             self.move(per_x, per_y)
-            print("backwards")
         # left
         elif x < min_mid < y < max_mid:
             per_x = math.floor((x - min_mid) / (Bottom + min_mid) * 100) * -1
             per_y = 0
             self.move(per_x, per_y)
-            print("left")
         # right
         elif x > max_mid > y > min_mid:
             per_x = math.floor((x - max_mid) / (Top - max_mid) * 100) * -1
             per_y = 0
             self.move(per_x, per_y)
-            print("right")
         # top-right
         elif x > max_mid and y > max_mid:
             per_x = math.floor((x - max_mid) / (Top - max_mid) * 100) * -1
             per_y = math.floor((y - max_mid) / (Top - max_mid) * 100)
             self.move(per_x, per_y)
-            print("top-right")
         # top-left
         elif x < min_mid and y > max_mid:
             per_x = math.floor((x - min_mid) / (Bottom + min_mid) * 100) * -1
             per_y = math.floor((y - max_mid) / (Top - max_mid) * 100)
             self.move(per_x, per_y)
-            print("top-left")
         # bottom-right
         elif x > max_mid and y < min_mid:
             per_x = math.floor((x - max_mid) / (Top - max_mid) * 100) * -1
             per_y = math.floor((y - min_mid) / (Bottom + min_mid) * 100)
             self.move(per_x, per_y)
-            print("bottom-right")
         # bottom-left
         elif x < min_mid and y < min_mid:
             per_x = math.floor((x - min_mid) / (Bottom + min_mid) * 100) * -1
             per_y = math.floor((y - min_mid) / (Bottom + min_mid) * 100)
             self.move(per_x, per_y)
-            print("bottom-left")
 
     def move(self, per_x, per_y):
         right_plus_left = ((100 - abs(per_x)) * (per_y / 100) + per_y)  # 200
         right_minus_left = ((100 - abs(per_y)) * (per_x / 100) + per_x)  # 0
         power_left_motor = (right_plus_left - right_minus_left) / 2
         power_right_motor = (right_plus_left + right_minus_left) / 2
-        t1 = threading.Thread(target=self.motor_left.move, args=(math.floor(power_left_motor),))
-        t2 = threading.Thread(target=self.motor_right.move, args=(math.floor(power_right_motor),))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        self.motor_left.move(math.floor(power_left_motor))
+        self.motor_right.move(math.floor(power_right_motor))
 
     def turn_right(self):
-        t1 = threading.Thread(target=self.motor_left.move, args=(100,))
-        t2 = threading.Thread(target=self.motor_right.move, args=(-100,))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        self.motor_left.move(math.floor(50))
+        self.motor_right.move(math.floor(-50))
 
     def turn_left(self):
-        t1 = threading.Thread(target=self.motor_left.move, args=(-100,))
-        t2 = threading.Thread(target=self.motor_right.move, args=(100,))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        self.motor_left.move(math.floor(-50))
+        self.motor_right.move(math.floor(50))
 
     def stop(self):
-        t1 = threading.Thread(target=self.motor_left.move, args=(0,))
-        t2 = threading.Thread(target=self.motor_right.move, args=(0,))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        self.motor_left.move(0)
+        self.motor_right.move(0)
 
 # https://sensorkit.joy-it.net/en/sensors/ky-023

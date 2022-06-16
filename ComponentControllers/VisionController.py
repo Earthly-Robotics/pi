@@ -64,6 +64,7 @@ class VisionController:
             kernel = np.ones((9, 9), np.uint8)
             mask = cv.erode(mask, kernel)
             contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+            self.error = 0
             for cnt in contours:
                 area = cv.contourArea(cnt)
                 if self.lower_area < area < self.upper_area:
@@ -82,16 +83,10 @@ class VisionController:
                 send_feed_task = asyncio.create_task(self.send_feed(img))
                 if self.error > 0:
                     self.wheels_controller.turn_right()
-                    # thread = threading.Thread(target=self.wheels_controller.turn_right())
-                    # thread.start()
                 elif self.error < 0:
                     self.wheels_controller.turn_left()
-                    # thread = threading.Thread(target=self.wheels_controller.turn_left())
-                    # thread.start()
                 else:
                     self.wheels_controller.stop()
-                    # thread = threading.Thread(target=self.wheels_controller.stop())
-                    # thread.start()
             # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
             # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
             if self.DEBUG and os == "Linux":
