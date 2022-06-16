@@ -1,5 +1,5 @@
 import serial, time, asyncio
-from Logger import ConsoleLogger
+from Logger.ConsoleLogger import ConsoleLogger
 
 
 class ArduinoController:
