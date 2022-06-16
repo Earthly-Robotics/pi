@@ -1,15 +1,4 @@
-from Network.NetworkController import *
-from ComponentControllers.VisionController import VisionController
-from ComponentControllers.WheelsController import WheelsController
-from Components.CameraFeed import CameraFeed
-import asyncio
-import cv2 as cv
-import threading
-
-#from ComponentControllers.VisionController import VisionController
 #from ComponentControllers.ArduinoController import ArduinoController
-#from Components.LoadCell import LoadCell
-#from Components.GyroAccelerometer import GyroAccelerometer
 from Network.NetworkController import *
 
 
@@ -29,6 +18,7 @@ async def main():
         if thread is not None:
             thread.join()
 
+
 def arduino_setup():
     controller = ArduinoController()
     controller.connect()
@@ -37,4 +27,15 @@ def arduino_setup():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    match platform.system():
+        case "Windows":
+            logger = ConsoleLogger()
+        case "Linux":
+            logger = ConsoleLogger()
+        case _:
+            logger = FileLogger()
+            logger.log("System not recognized")
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.log("Keyboard Interrupt!")

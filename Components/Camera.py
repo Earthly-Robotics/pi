@@ -1,6 +1,6 @@
 import base64
+import time
 import cv2 as cv
-
 from Components.AppComponent import AppComponent
 
 
@@ -16,18 +16,18 @@ class Camera(AppComponent):
             ret, frame = self.camera.read()
             return frame
         else:
-            print("Camera does not exist. Try calling setup()")
             return None
 
     def get_width(self):
         if self.camera is not None:
             return self.camera.get(3)
         else:
-            print("Camera does not exist. Try calling setup()")
             return None
 
     def format_component_data(self) -> tuple:
+        start = time.time()
         frame = self.get_image()
         _, buffer = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
         buffer = base64.b64encode(buffer).decode()
+        self.interval = max(1. / 24 - (time.time() - start), 0)
         return "Camera", buffer
