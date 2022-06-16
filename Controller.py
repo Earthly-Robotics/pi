@@ -1,6 +1,10 @@
 import asyncio
+import platform
 import threading
 import RPi.GPIO as GPIO
+
+from Logger.ConsoleLogger import ConsoleLogger
+from Logger.FileLogger import FileLogger
 from Network.NetworkController import NetworkController
 #from ComponentControllers.ArduinoController import ArduinoController
 
