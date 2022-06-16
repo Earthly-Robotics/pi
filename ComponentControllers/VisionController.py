@@ -56,7 +56,7 @@ class VisionController:
             start = time.time()
             img = self.cam.get_image()
             if img is None:
-                pass
+                continue
             hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
             lower_mask = cv.inRange(hsv, self.lower_blue_low, self.upper_blue_low)
             upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
