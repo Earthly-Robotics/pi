@@ -31,18 +31,8 @@ class ServoController:
             magnet_status = False
             self.arduino_controller.send_message("magnet;-30")
 
-    def power_servo(self, y, string):
-        result = calculate_percentage(y)
-
-        # backwards
-        elif y < -400 and y >= -2047:
-            percentage_pos = math.floor(((y + 400) / 1647) * 100)
-            output = math.floor((percentage_pos))
-
-            return output
-
     def power_servo(self, y, profile):
-        result = self.calculate_percentage(y)
+        result = calculate_percentage(y)
         if profile == 0:
 
             # vanwege tandwielen x2
@@ -50,7 +40,7 @@ class ServoController:
             current_deg = self.servo_list[1]
             new_degrees = (current_deg["POS"] + power)*2
             current_deg["POS"] = new_degrees
-            if(new_degrees < 150 and new_degrees > -150):
+            if 150 > new_degrees > -150:
                 self.arduino_controller.send_message(str.format("{0};{1}", current_deg["ID"], current_deg["POS"]))
 
                 current_deg = self.servo_list[2]
@@ -58,13 +48,13 @@ class ServoController:
                 current_deg["POS"] = new_degrees
                 self.arduino_controller.send_message(str.format("{0};{1}", current_deg["ID"], current_deg["POS"]))
 
-
         elif profile == 1:
             power = result / 30
             current_deg = self.servo_list[0]
             new_degrees = current_deg["POS"] + power
             current_deg["POS"] = new_degrees
-            if (new_degrees < 150 and new_degrees > -150):
+            if 150 > new_degrees > -150:
                 self.arduino_controller.send_message(current_deg["ID"] + ";" + current_deg["POS"])
+
     def sendMessage(self, message):
         self.arduino_controller.send_message()
