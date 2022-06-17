@@ -1,13 +1,7 @@
 import asyncio
-import platform
 import threading
 import platform
-import traceback
-
 import RPi.GPIO as GPIO
-
-from Logger.ConsoleLogger import ConsoleLogger
-from Logger.FileLogger import FileLogger
 from Network.NetworkController import NetworkController
 from ComponentControllers.ArduinoController import ArduinoController
 from Logger.ConsoleLogger import ConsoleLogger
@@ -50,7 +44,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.log("Keyboard Interrupt!")
     except Exception as e:
-        logger.log("Something went wrong in MAIN:\n{0}".format(e))
-        logger.log(traceback.format_exc())
+        logger.log("Something went wrong in MAIN: {0}".format(e))
     finally:
         GPIO.cleanup()

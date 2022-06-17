@@ -1,13 +1,14 @@
+import asyncio
+import base64
 import platform
 import socket
 import json
 import threading
 import time
-import RPi.GPIO as gpio
 
 from ComponentControllers.ServoController import ServoController
-from CameraFeed import CameraFeed
 from ComponentControllers.VisionController import VisionController
+from ComponentControllers.WheelsController import WheelsController
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
 from Components.GyroAccelerometer import GyroAccelerometer
@@ -15,6 +16,7 @@ from Network.ConfigReader import config
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 from ComponentControllers.WheelsController import WheelsController
+from threading import Thread
 
 
 class NetworkController:
@@ -50,40 +52,21 @@ class NetworkController:
 
     def __init_components(self):
         app_components = []
-        self.load_cell = self.__start_component(LoadCell,
-                                                args=(self,))
-        if self.load_cell is not None:
-            app_components.append(self.load_cell)
 
-        self.accel_gyro_meter = self.__start_component(GyroAccelerometer,
-                                                       args=(self,))
-        if self.accel_gyro_meter is not None:
-            app_components.append(self.accel_gyro_meter)
+        self.load_cell = LoadCell(network_controller=self)
+        app_components.append(self.load_cell)
 
-        self.camera = self.__start_component(Camera, args=(self,))
-        self.vision_controller = None
-        if self.camera is not None:
-            app_components.append(self.camera)
-            self.vision_controller = self.__start_component(VisionController,
-                                                            args=(self.camera,
-                                                                  self.wheels_controller,
-                                                                  self))
-            if self.vision_controller is not None:
-                app_components.append(self.vision_controller)
-                self.camera_feed = self.__start_component(CameraFeed,
-                                                          args=(self,
-                                                                self.vision_controller))
-                if self.camera_feed is not None:
-                    app_components.append(self.camera_feed)
+        self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
+        app_components.append(self.accel_gyro_meter)
+
+        self.camera = Camera(network_controller=self)
+        app_components.append(self.camera)
+
+        self.vision_controller = VisionController(cam=self.camera,
+                                                  wheels_controller=self.wheels_controller,
+                                                  network_controller=self)
+        app_components.append(self.vision_controller)
         return app_components
-
-    def __start_component(self, comp, args=()):
-        try:
-            result = comp(*args)
-        except Exception as e:
-            result = None
-            self.logger.log("\nCould not start %s:\n%s\n" % (comp.__name__, e))
-        return result
 
     def setup_server(self):
         """
@@ -151,9 +134,10 @@ class NetworkController:
                 pass
             case "LJB":
                 pass
+            case "BATTERY":
+                self.logger.log("Received BATTERY.")
             case "PING":
                 self.toggle_send_timeout_start = time.time()
-                self.logger.log("Received PING.")
                 if not self.app_connected:
                     for thread in self.threads:
                         if thread.name == "PING":
@@ -176,9 +160,6 @@ class NetworkController:
             case "PLANT":
                 pass
             case "BLUE_BLOCK":
-                if self.vision_controller is None:
-                    self.logger.log("Can't process BLUE_BLOCK. Vision_Controller is None")
-                    return
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
                     self.vision_controller.tracking))
@@ -187,13 +168,7 @@ class NetworkController:
                                  target=self.vision_controller.start_track_blue_cube,
                                  args=(self.client_address,)
                                  )
-                block_values = self.vision_controller.get_values()
-                data = json.dumps(block_values)
-                self.send_message(data.encode(), self.client_address)
-            case "CAMERA":
-                if self.camera is None:
-                    self.logger.log("Can't process CAMERA. Camera is None")
-                    return
+            case self.camera.msg_type:
                 self.camera.sending = not self.camera.sending
                 self.logger.log("Received CAMERA. Will it start sending? {0}".format(
                     self.camera.sending))
@@ -202,22 +177,8 @@ class NetworkController:
                                  target=self.camera.update_app_data,
                                  args=(self.client_address,)
                                  )
-            case "CAMERA_DEBUG":
-                pass
-                # if self.camera_feed is None:
-                #     self.logger.log("Can't process CAMERA_DEBUG. Camera_Feed is None")
-                # self.logger.log("Received CAMERA_DEBUG")
-                # self.camera_feed.sending = not self.camera_feed.sending
-                # self.toggle_send(sending=self.camera_feed.sending,
-                #                  thread_name=self.camera_feed.msg_type,
-                #                  target=self.camera_feed.update_app_data,
-                #                  args=(self.client_address,))
-
-            case "WEIGHT":
-                if self.load_cell is None:
-                    self.logger.log("Can't process WEIGHT. Load_cell is None")
-                    return
-                self.logger.log("Received WEIGHT")
+            case self.load_cell.msg_type:
+                self.logger.log("Received LOAD_CELL")
                 self.load_cell.sending = not self.load_cell.sending
                 self.toggle_send(sending=self.load_cell.sending,
                                  thread_name=self.load_cell.msg_type,
@@ -225,18 +186,11 @@ class NetworkController:
                                  args=(self.client_address,)
                                  )
             case "BLUE_BLOCK_VALUES":
-                if self.vision_controller is None:
-                    self.logger.log("Can't process BLUE_BLOCK_VALUES. Vision Controller is None")
-                    return
                 self.logger.log("Received BLUE_BLOCK_VALUES.")
                 new_values = self.vision_controller.update_values(message)
                 data = json.dumps(new_values)
                 self.send_message(data.encode(), self.client_address)
-            case "VELOCITY":
-                if self.accel_gyro_meter is None:
-                    self.logger.log("Can't process VELOCITY. Accel_Gyro_Meter is None")
-                    return
-                self.logger.log("Received VELOCITY.")
+            case self.accel_gyro_meter.msg_type:
                 self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
                 self.toggle_send(sending=self.accel_gyro_meter.sending,
                                  thread_name=self.accel_gyro_meter.msg_type,
@@ -304,7 +258,6 @@ class NetworkController:
             continue
         self.logger.log("App disconnected")
         self.__stop_components()
-        GPIO.cleanup()
         self.app_components = self.__init_components()
         self.app_connected = False
 
@@ -330,9 +283,7 @@ class NetworkController:
                 continue
             thread.join()
             self.threads.remove(thread)
-
-        if self.camera is not None:
-            self.camera.camera.release()
+        self.camera.camera.release()
         self.wheels_controller.stop()
 
     def send_message(self, bytes_to_send, address):
