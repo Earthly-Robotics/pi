@@ -1,32 +1,53 @@
-import time
+import asyncio
+import platform
+import threading
+import traceback
 
 import RPi.GPIO as GPIO
-from Network.NetworkController import *
-import threading
-# from ComponentControllers.VisionController import VisionController
-from ComponentControllers.WheelsController import WheelsController
+
+from Logger.ConsoleLogger import ConsoleLogger
+from Logger.FileLogger import FileLogger
+from Network.NetworkController import NetworkController
+#from ComponentControllers.ArduinoController import ArduinoController
 
 
-def main():
-    # vision_controller = VisionController()
-    # camera_feed = CameraFeed(vision_controller.cam)
-    wheels_controller = WheelsController()
-    # server = NetworkController(wheels_controller, vision_controller, camera_feed)
-    server = NetworkController(wheels_controller)
-    server.setup_server()
-    # server = NetworkController()
-    # thread = threading.Thread(target=server.setup_server, daemon=True)
-    # thread.start()
-    # time.sleep(100)
-    # print("done with main")
-
-    # vision_controller = VisionController()
-    #
-    # while True:
-    #     vision_controller.get_camera_feed()
-    #     cv.waitKey(1)
+async def main():
+    # arduino_controller = arduino_setup()
+    # arduino_controller.close()
+    thread = None
+    try:
+        server = NetworkController()
+        thread = threading.Thread(target=server.setup_server, daemon=True)
+        thread.start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if thread is not None:
+            thread.join()
 
 
+def arduino_setup():
+    controller = ArduinoController()
+    controller.connect()
+    asyncio.create_task(controller.read_message())
+    return controller
 
-main()
 
+if __name__ == "__main__":
+    match platform.system():
+        case "Windows":
+            logger = ConsoleLogger()
+        case "Linux":
+            logger = ConsoleLogger()
+        case _:
+            logger = FileLogger()
+            logger.log("System not recognized")
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.log("Keyboard Interrupt!")
+    except Exception as e:
+        logger.log("Something went wrong in MAIN:\n{0}".format(e))
+        logger.log(traceback.format_exc())
+    finally:
+        GPIO.cleanup()

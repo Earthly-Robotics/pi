@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 .idea/
+
+transfer_to_pi.py
