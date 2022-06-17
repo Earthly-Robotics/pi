@@ -1,5 +1,7 @@
 from HX711 import *
 import RPi.GPIO as GPIO
+import os
+import sys
 
 from Components.AppComponent import AppComponent
 
@@ -13,12 +15,9 @@ class LoadCell(AppComponent):
     def __init__(self, network_controller, data_pin=5, clock_pin=6, reference_unit=-1103, offset=-108042):
         super().__init__(network_controller)
         self.msg_type = "WEIGHT"
-        try:
-            self.hx = SimpleHX711(data_pin, clock_pin, reference_unit, offset)
-            self.hx.setUnit(Mass.Unit.G)
-            self.hx.zero()
-        except Exception as e:
-            print("Could not start HX711:\n", e)
+        self.hx = SimpleHX711(data_pin, clock_pin, reference_unit, offset)
+        self.hx.setUnit(Mass.Unit.G)
+        self.hx.zero()
 
     def measure_weight(self, samples=15):
         """
