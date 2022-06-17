@@ -7,6 +7,8 @@ import threading
 import time
 
 from ComponentControllers.ServoController import ServoController
+from CameraFeed import CameraFeed
+from ComponentControllers.SoundController import SoundController
 from ComponentControllers.VisionController import VisionController
 from ComponentControllers.WheelsController import WheelsController
 from Components.Camera import Camera
@@ -46,6 +48,7 @@ class NetworkController:
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
+        self.sound_controller = SoundController()
         self.wheels_controller = WheelsController()
         self.servo_controller = ServoController()
         self.app_components = self.__init_components()
@@ -56,16 +59,22 @@ class NetworkController:
         self.load_cell = LoadCell(network_controller=self)
         app_components.append(self.load_cell)
 
-        self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
-        app_components.append(self.accel_gyro_meter)
+        self.camera = self.__start_component(Camera, args=(self,))
+        self.vision_controller = None
 
-        self.camera = Camera(network_controller=self)
-        app_components.append(self.camera)
-
-        self.vision_controller = VisionController(cam=self.camera,
-                                                  wheels_controller=self.wheels_controller,
-                                                  network_controller=self)
-        app_components.append(self.vision_controller)
+        if self.camera is not None:
+            app_components.append(self.camera)
+            self.vision_controller = self.__start_component(VisionController,
+                                                            args=(self.camera,
+                                                                  self.wheels_controller,
+                                                                  self))
+            if self.vision_controller is not None:
+                app_components.append(self.vision_controller)
+                self.camera_feed = self.__start_component(CameraFeed,
+                                                          args=(self,
+                                                                self.vision_controller))
+                if self.camera_feed is not None:
+                    app_components.append(self.camera_feed)
         return app_components
 
     def setup_server(self):
@@ -102,111 +111,147 @@ class NetworkController:
 
     def __handle_message(self, message):
         self.timeout_start = time.time()
-        match (message["MT"]):
-            case "LJ":
-                x = message["x"]
-                y = message["y"]
-                p = message["p"]
-                if self.profile != p:
-                    self.profile = p
-                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y, self.limiter))
-                LJ_thread.start()
-            case "RJ":
-                y = message["y"]
-                p = message["p"]
-                if self.profile != p:
-                    self.profile = p
-                self.servo_controller.power_servo(y, self.profile)
-            case "PB":
-                pass
-                # p = message["p"]
-                # self.profile = p
-                # msg_from_server = "Profile Button received"
-                # bytes_to_send = str.encode(msg_from_server)
-                # self.send_message(bytes_to_send, self.client_address)
-            case "AB":
-                if self.profile == 0:
-                    self.limiter = message["l"]
-                else:
-                    self.rotate_magnet = not self.rotate_magnet
-                    self.servo_controller.control_magnet(self.rotate_magnet)
-            case "RJB":
-                pass
-            case "LJB":
-                pass
-            case "BATTERY":
-                self.logger.log("Received BATTERY.")
-            case "PING":
-                self.toggle_send_timeout_start = time.time()
-                if not self.app_connected:
-                    for thread in self.threads:
-                        if thread.name == "PING":
-                            thread.join()
-                    self.app_connected = True
-                    self.logger.log("App connected")
-                    t = threading.Thread(target=self.check_toggle_send_connection)
-                    t.name = "PING"
-                    self.threads.append(t)
-                    t.start()
-                ping = {
-                    "MT": "PING"
-                }
-                data = json.dumps(ping)
-                self.send_message(data.encode(), self.client_address)
-            case "LINE_DANCE":
-                pass
-            case "SOLO_DANCE":
-                pass
-            case "PLANT":
-                pass
-            case "BLUE_BLOCK":
-                self.vision_controller.tracking = not self.vision_controller.tracking
-                self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
-                    self.vision_controller.tracking))
-                self.toggle_send(sending=self.vision_controller.tracking,
-                                 thread_name="BLUE_BLOCK",
-                                 target=self.vision_controller.start_track_blue_cube,
-                                 args=(self.client_address,)
-                                 )
-            case self.camera.msg_type:
-                self.camera.sending = not self.camera.sending
-                self.logger.log("Received CAMERA. Will it start sending? {0}".format(
-                    self.camera.sending))
-                self.toggle_send(sending=self.camera.sending,
-                                 thread_name=self.camera.msg_type,
-                                 target=self.camera.update_app_data,
-                                 args=(self.client_address,)
-                                 )
-            case self.load_cell.msg_type:
-                self.logger.log("Received LOAD_CELL")
-                self.load_cell.sending = not self.load_cell.sending
-                self.toggle_send(sending=self.load_cell.sending,
-                                 thread_name=self.load_cell.msg_type,
-                                 target=self.load_cell.update_app_data,
-                                 args=(self.client_address,)
-                                 )
-            case "BLUE_BLOCK_VALUES":
-                self.logger.log("Received BLUE_BLOCK_VALUES.")
-                new_values = self.vision_controller.update_values(message)
-                data = json.dumps(new_values)
-                self.send_message(data.encode(), self.client_address)
-            case self.accel_gyro_meter.msg_type:
-                self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
-                self.toggle_send(sending=self.accel_gyro_meter.sending,
-                                 thread_name=self.accel_gyro_meter.msg_type,
-                                 target=self.accel_gyro_meter.update_app_data,
-                                 args=(self.client_address,)
-                                 )
-            case "EMERGENCY_BUTTON":
-                self.logger.log("EMERGENCY_BUTTON received. Stopping all components")
-                self.__stop_components()
-                self.app_components = self.__init_components()
-                data = json.dumps({
-                    "MT": "MANUAL"
-                })
-                self.send_message(data.encode(), self.client_address)
-            case _:
-                self.logger.log("{0} is not an existing MessageType".format(message["MT"]))
+        self.sound_controller.get_beat()
+
+        #TODO: uncomment this
+
+        # match (message["MT"]):
+        #     case "LJ":
+        #         x = message["x"]
+        #         y = message["y"]
+        #         p = message["p"]
+        #         if self.profile != p:
+        #             self.profile = p
+        #         LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y))
+        #         LJ_thread.start()
+        #         # self.wheels_controller.move_wheels(x, y)
+        #         # print("LeftJoystick: x : {}, y : {}, p : {}".format(x, y, p))
+        #     case "RJ":
+        #         pass
+        #         # x = message["x"]
+        #         # y = message["y"]
+        #         # p = message["p"]
+        #         # if self.profile != p:
+        #         #     self.profile = p
+        #         # self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
+        #         # msg_from_server = "Data RightJoystick received"
+        #         # bytes_to_send = str.encode(msg_from_server)
+        #         # self.send_message(bytes_to_send, self.client_address)
+        #     case "PB":
+        #         pass
+        #         # p = message["p"]
+        #         # self.profile = p
+        #         # msg_from_server = "Profile Button received"
+        #         # bytes_to_send = str.encode(msg_from_server)
+        #         # self.send_message(bytes_to_send, self.client_address)
+        #     case "VB":
+        #         pass
+        #     case "RJB":
+        #         pass
+        #     case "LJB":
+        #         pass
+        #     case "PING":
+        #         self.toggle_send_timeout_start = time.time()
+        #         self.logger.log("Received PING.")
+        #         if not self.app_connected:
+        #             for thread in self.threads:
+        #                 if thread.name == "PING":
+        #                     thread.join()
+        #             self.app_connected = True
+        #             self.logger.log("App connected")
+        #             t = threading.Thread(target=self.check_toggle_send_connection)
+        #             t.name = "PING"
+        #             self.threads.append(t)
+        #             t.start()
+        #         ping = {
+        #             "MT": "PING"
+        #         }
+        #         data = json.dumps(ping)
+        #         self.send_message(data.encode(), self.client_address)
+        #     case "LINE_DANCE":
+        #         pass
+        #     case "SOLO_DANCE":
+        #         pass
+        #     case "PLANT":
+        #         pass
+        #     case "BLUE_BLOCK":
+        #         if self.vision_controller is None:
+        #             self.logger.log("Can't process BLUE_BLOCK. Vision_Controller is None")
+        #             return
+        #         self.vision_controller.tracking = not self.vision_controller.tracking
+        #         self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
+        #             self.vision_controller.tracking))
+        #         self.toggle_send(sending=self.vision_controller.tracking,
+        #                          thread_name="BLUE_BLOCK",
+        #                          target=self.vision_controller.start_track_blue_cube,
+        #                          args=(self.client_address,)
+        #                          )
+        #         block_values = self.vision_controller.get_values()
+        #         data = json.dumps(block_values)
+        #         self.send_message(data.encode(), self.client_address)
+        #     case "CAMERA":
+        #         if self.camera is None:
+        #             self.logger.log("Can't process CAMERA. Camera is None")
+        #             return
+        #         self.camera.sending = not self.camera.sending
+        #         self.logger.log("Received CAMERA. Will it start sending? {0}".format(
+        #             self.camera.sending))
+        #         self.toggle_send(sending=self.camera.sending,
+        #                          thread_name=self.camera.msg_type,
+        #                          target=self.camera.update_app_data,
+        #                          args=(self.client_address,)
+        #                          )
+        #     case "CAMERA_DEBUG":
+        #         pass
+        #         # if self.camera_feed is None:
+        #         #     self.logger.log("Can't process CAMERA_DEBUG. Camera_Feed is None")
+        #         # self.logger.log("Received CAMERA_DEBUG")
+        #         # self.camera_feed.sending = not self.camera_feed.sending
+        #         # self.toggle_send(sending=self.camera_feed.sending,
+        #         #                  thread_name=self.camera_feed.msg_type,
+        #         #                  target=self.camera_feed.update_app_data,
+        #         #                  args=(self.client_address,))
+        #
+        #     case "WEIGHT":
+        #         if self.load_cell is None:
+        #             self.logger.log("Can't process WEIGHT. Load_cell is None")
+        #             return
+        #         self.logger.log("Received WEIGHT")
+        #         self.load_cell.sending = not self.load_cell.sending
+        #         self.toggle_send(sending=self.load_cell.sending,
+        #                          thread_name=self.load_cell.msg_type,
+        #                          target=self.load_cell.update_app_data,
+        #                          args=(self.client_address,)
+        #                          )
+        #     case "BLUE_BLOCK_VALUES":
+        #         if self.vision_controller is None:
+        #             self.logger.log("Can't process BLUE_BLOCK_VALUES. Vision Controller is None")
+        #             return
+        #         self.logger.log("Received BLUE_BLOCK_VALUES.")
+        #         new_values = self.vision_controller.update_values(message)
+        #         data = json.dumps(new_values)
+        #         self.send_message(data.encode(), self.client_address)
+        #     case "VELOCITY":
+        #         if self.accel_gyro_meter is None:
+        #             self.logger.log("Can't process VELOCITY. Accel_Gyro_Meter is None")
+        #             return
+        #         self.logger.log("Received VELOCITY.")
+        #         self.accel_gyro_meter.sending = not self.accel_gyro_meter.sending
+        #         self.toggle_send(sending=self.accel_gyro_meter.sending,
+        #                          thread_name=self.accel_gyro_meter.msg_type,
+        #                          target=self.accel_gyro_meter.update_app_data,
+        #                          args=(self.client_address,)
+        #                          )
+        #     case "EMERGENCY_BUTTON":
+        #         self.logger.log("EMERGENCY_BUTTON received. Stopping all components")
+        #         self.__stop_components()
+        #         self.app_components = self.__init_components()
+        #         data = json.dumps({
+        #             "MT": "MANUAL"
+        #         })
+        #         self.send_message(data.encode(), self.client_address)
+        #     case _:
+        #         self.logger.log("{0} is not an existing MessageType".format(message["MT"]))
 
     def toggle_send(self, sending, thread_name, target, args=None):
         """
