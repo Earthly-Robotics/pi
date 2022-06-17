@@ -1,8 +1,9 @@
+import Singleton
 from Logger.ILogger import ILogger
 from datetime import datetime
 
 
-class FileLogger(ILogger):
+class FileLogger(ILogger, metaclass=Singleton):
 
     def log(self, string):
         dt = datetime.now()

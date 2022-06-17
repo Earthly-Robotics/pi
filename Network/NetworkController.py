@@ -121,11 +121,8 @@ class NetworkController:
                 self.servo_controller.power_servo(y, self.profile)
             case "PB":
                 pass
-                # p = message["p"]
-                # self.profile = p
-                # msg_from_server = "Profile Button received"
-                # bytes_to_send = str.encode(msg_from_server)
-                # self.send_message(bytes_to_send, self.client_address)
+                p = message["p"]
+                self.profile = p
             case "AB":
                 if self.profile == 0:
                     self.limiter = message["l"]
