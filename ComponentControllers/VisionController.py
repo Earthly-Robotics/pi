@@ -41,6 +41,7 @@ class VisionController:
     cam_half_width = 0
 
     def __init__(self, cam, wheels_controller=None, network_controller=None):
+        self._img = None
         self.cam = cam
         self.client_ip = None
         self.wheels_controller = wheels_controller
@@ -79,22 +80,26 @@ class VisionController:
                         center_x = int(m["m10"] / m["m00"])
                         self.error = self.cam_half_width - center_x
             os = platform.system()
+            self._img = img
             if self.DEBUG and os == "Windows":
                 cv.imshow('result', img)
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
                 send_feed_task = asyncio.create_task(self.send_feed(img))
-                if self.error > 0:
-                    self.wheels_controller.turn_right()
-                elif self.error < 0:
-                    self.wheels_controller.turn_left()
-                else:
-                    self.wheels_controller.stop()
+                # if self.error > 0:
+                #     self.wheels_controller.turn_right()
+                # elif self.error < 0:
+                #     self.wheels_controller.turn_left()
+                # else:
+                #     self.wheels_controller.stop()
             # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
             # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
             if self.DEBUG and os == "Linux":
                 await asyncio.gather(send_feed_task)
                 time.sleep(max(1. / 24 - (time.time() - start), 0))
+
+    def get_debug_image(self):
+        return self._img
 
     async def send_feed(self, img):
         _, data = cv.imencode('.jpg', img, [cv.IMWRITE_JPEG_QUALITY, 50])

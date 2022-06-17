@@ -3,7 +3,9 @@ import socket
 import json
 import threading
 import time
+import RPi.GPIO as gpio
 
+from CameraFeed import CameraFeed
 from ComponentControllers.VisionController import VisionController
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
@@ -64,6 +66,11 @@ class NetworkController:
                                                                   self))
             if self.vision_controller is not None:
                 app_components.append(self.vision_controller)
+                self.camera_feed = self.__start_component(CameraFeed,
+                                                          args=(self,
+                                                                self.vision_controller))
+                if self.camera_feed is not None:
+                    app_components.append(self.camera_feed)
         return app_components
 
     def __start_component(self, comp, args=()):
@@ -194,6 +201,17 @@ class NetworkController:
                                  target=self.camera.update_app_data,
                                  args=(self.client_address,)
                                  )
+            case "CAMERA_DEBUG":
+                pass
+                # if self.camera_feed is None:
+                #     self.logger.log("Can't process CAMERA_DEBUG. Camera_Feed is None")
+                # self.logger.log("Received CAMERA_DEBUG")
+                # self.camera_feed.sending = not self.camera_feed.sending
+                # self.toggle_send(sending=self.camera_feed.sending,
+                #                  thread_name=self.camera_feed.msg_type,
+                #                  target=self.camera_feed.update_app_data,
+                #                  args=(self.client_address,))
+
             case "WEIGHT":
                 if self.load_cell is None:
                     self.logger.log("Can't process WEIGHT. Load_cell is None")
@@ -285,6 +303,7 @@ class NetworkController:
             continue
         self.logger.log("App disconnected")
         self.__stop_components()
+        GPIO.cleanup()
         self.app_components = self.__init_components()
         self.app_connected = False
 

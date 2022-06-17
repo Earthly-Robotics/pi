@@ -5,7 +5,7 @@ class AppComponent:
     network_controller = None
     sending = False
     msg_type = ""
-    interval = 1
+    interval = 10
 
     def __init__(self, network_controller):
         self.network_controller = network_controller
@@ -30,6 +30,8 @@ class AppComponent:
         """
         while self.sending:
             data = self.format_component_data()
+            if data is None:
+                continue
             msg_obj = {
                 "MT": self.msg_type,
             }

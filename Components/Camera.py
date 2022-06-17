@@ -9,6 +9,8 @@ class Camera(AppComponent):
         super().__init__(network_controller)
         self.msg_type = "CAMERA"
         self.camera = cv.VideoCapture(0)
+        self._prev = 0
+        self.interval = 0
         if not self.camera.isOpened():
             raise Exception("Couldn't open camera")
 
@@ -26,9 +28,14 @@ class Camera(AppComponent):
             return None
 
     def format_component_data(self) -> tuple:
-        start = time.time()
+        elapsed = time.time() - self._prev
         frame = self.get_image()
+        if frame is None:
+            return None
+        while elapsed < (1. / 24):
+            elapsed = time.time() - self._prev
+            continue
+        self._prev = time.time()
         _, buffer = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
         buffer = base64.b64encode(buffer).decode()
-        self.interval = max(1. / 24 - (time.time() - start), 0)
         return "Camera", buffer
