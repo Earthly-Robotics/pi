@@ -158,7 +158,12 @@ class NetworkController:
             case "SOLO_DANCE":
                 pass
             case "PLANT":
-                AutoSeedPlant.plantSeeds(2,4,2,2) #rows,seeds,distance in seconds till next row, distance in sec till next seed
+                # To Do: get msg variables, go to blue block before starting planting
+                rows = message[""]
+                seeds = message[""]
+                row_dist = message[""]
+                seed_dist = message[""]
+                AutoSeedPlant.plantSeeds(2, 4, 2, 2)  # rows, seeds, sec dist till next row, sec dist till next seed
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
@@ -295,4 +300,3 @@ class NetworkController:
         :return:
         """
         self.udp_server_socket.sendto(bytes_to_send, address)
-

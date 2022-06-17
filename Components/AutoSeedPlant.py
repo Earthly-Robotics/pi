@@ -1,21 +1,23 @@
 from time import sleep
 from ComponentControllers.WheelsController import WheelsController
 from Components.GyroAccelerometer import GyroAccelerometer
+from ComponentControllers.ArduinoController import ArduinoController
 
-GYRO_YOUT_H  = 0x45
+#GYRO_YOUT_H  = 0x45
 
 class AutoSeedPlant:
 
     def __init__(self):
         self.wheels_controller = WheelsController()
         self.gyro_accelerometer = GyroAccelerometer()
+        self.arduino_controller = ArduinoController()
 
     def findStartPos(self):
         # To Do: find start pos with blue block
         pass
 
     def plantSeeds(self,rows,amount,rSpace,sSpace):
-        # To Do: hoeken berekenen met gyroscoop, space berekenen per sec, find startplace with blueblock
+        # To Do: space berekenen per sec
         rows = rows
         amountseeds = amount
         rowspace = rSpace #space in seconds
@@ -23,21 +25,22 @@ class AutoSeedPlant:
 
         for x in range(rows):
             for y in range(amountseeds):
-                self.wheels_controller.goForward()
+                self.wheels_controller.go_forward()
                 sleep(seedspace)
                 self.wheels_controller.stop()
                 #do servo plant thingy
+                self.arduino_controller.send_message("hopperTimed")
 
             #turn around
             if (x % 2) == 0:
                 self.turn90("RIGHT")
-                self.wheels_controller.goForward()
+                self.wheels_controller.go_forward()
                 sleep(rowspace)
                 self.turn90("RIGHT")
                 self.wheels_controller.stop()
             else:
                 self.turn90("LEFT")
-                self.wheels_controller.goForward()
+                self.wheels_controller.go_forward()
                 sleep(rowspace)
                 self.turn90("LEFT")
                 self.wheels_controller.stop()
@@ -54,9 +57,9 @@ class AutoSeedPlant:
         while True:
             match (direction):
                 case "RIGHT":
-                    self.wheels_controller.goRight()
+                    self.wheels_controller.turn_right()
                 case "LEFT":
-                    self.wheels_controller.goLeft()
+                    self.wheels_controller.turn_left()
             gyro_difference = self.getGyroDifference(start_gyro_y)
-            if gyro_difference >= turn_degrees or gyro_difference >= turn_degrees * -1: 
+            if gyro_difference >= turn_degrees or gyro_difference >= turn_degrees * -1:
                 break
