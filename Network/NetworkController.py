@@ -3,7 +3,7 @@ import socket
 import json
 import threading
 import time
-import RPi.GPIO as gpio
+import RPi.GPIO as GPIO
 
 from CameraFeed import CameraFeed
 from ComponentControllers.VisionController import VisionController
@@ -34,11 +34,10 @@ class NetworkController:
         self.port = int(self.params['port'])
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.udp_server_socket.settimeout(25)
         self.profile = 0
-        self.timeout = 600
+        self.timeout = 20
         self.timeout_start = 0
-        self.toggle_send_timeout = 600
-        self.toggle_send_timeout_start = 0
         self.app_connected = False
 
         self.wheels_controller = WheelsController()
@@ -97,8 +96,12 @@ class NetworkController:
         print("Own Port: ", self.port)
         self.logger.log("Server started listening...")
         self.timeout_start = time.time()
-        while time.time() < self.timeout_start + self.timeout:
-            bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+        while True:
+            try:
+                bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+            except Exception as e:
+                print("Something went wrong with socket: %s " % e)
+                break
 
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
@@ -151,7 +154,7 @@ class NetworkController:
             case "LJB":
                 pass
             case "PING":
-                self.toggle_send_timeout_start = time.time()
+                self.timeout_start = time.time()
                 self.logger.log("Received PING.")
                 if not self.app_connected:
                     for thread in self.threads:
@@ -266,7 +269,7 @@ class NetworkController:
         :type args: any or None
         :return:
         """
-        self.toggle_send_timeout_start = time.time()
+        self.timeout_start = time.time()
         if sending is False:
             for thread in self.threads:
                 if thread.name == thread_name:
@@ -298,7 +301,7 @@ class NetworkController:
         """
         Resets all the components connected to the app when the app reaches timeout.
         """
-        while time.time() < self.toggle_send_timeout_start + self.toggle_send_timeout:
+        while time.time() < self.timeout_start + self.timeout:
             time.sleep(4)
             continue
         self.logger.log("App disconnected")
@@ -313,7 +316,7 @@ class NetworkController:
         """
         self.logger.log("Stopping the server...")
         self.timeout = 0
-        self.toggle_send_timeout = 0
+        self.timeout = 0
         self.app_connected = False
         self.__stop_components()
 
