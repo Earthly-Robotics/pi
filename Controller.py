@@ -14,6 +14,7 @@ from Network.NetworkController import NetworkController
 async def main():
     # arduino_controller = arduino_setup()
     # arduino_controller.close()
+    server = None
     thread = None
     try:
         server = NetworkController()
@@ -22,6 +23,8 @@ async def main():
     except KeyboardInterrupt:
         pass
     finally:
+        if server is not None:
+            server.stop_server()
         if thread is not None:
             thread.join()
 

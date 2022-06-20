@@ -27,6 +27,12 @@ class Camera(AppComponent):
         else:
             return None
 
+    def get_height(self):
+        if self.camera is not None:
+            return self.camera.get(4)
+        else:
+            return None
+
     def format_component_data(self) -> tuple:
         elapsed = time.time() - self._prev
         frame = self.get_image()

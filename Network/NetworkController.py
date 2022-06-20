@@ -39,6 +39,7 @@ class NetworkController:
         self.timeout = 20
         self.timeout_start = 0
         self.app_connected = False
+        self._enabled = True
 
         self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
@@ -307,10 +308,12 @@ class NetworkController:
         self.logger.log("App disconnected")
         self.__stop_components()
         GPIO.cleanup()
+        self.wheels_controller.reset_motors()
+        self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
         self.app_connected = False
 
-    def stop_server(self):
+    def __stop_server(self):
         """
         Cleans up the server.
         """
@@ -320,13 +323,15 @@ class NetworkController:
         self.app_connected = False
         self.__stop_components()
 
+    def stop_server(self):
+        self._enabled = False
+
     def __stop_components(self):
         """
         Stops components from sending data.
         """
         for comp in self.app_components:
             comp.stop_sending()
-            time.sleep(0.5)
         for thread in self.threads:
             if thread.name == "PING":
                 continue
