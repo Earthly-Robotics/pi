@@ -56,5 +56,5 @@ class ServoController:
             if 150 > new_degrees > -150:
                 self.arduino_controller.send_message(current_deg["ID"] + ";" + current_deg["POS"])
 
-    def sendMessage(self, message):
-        self.arduino_controller.send_message()
+    def send_message(self, message):
+        self.arduino_controller.send_message(message)

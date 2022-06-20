@@ -3,7 +3,7 @@ from Logger.ILogger import ILogger
 from datetime import datetime
 
 
-class FileLogger(ILogger, metaclass=Singleton):
+class FileLogger(ILogger):
 
     def log(self, string):
         dt = datetime.now()

@@ -18,5 +18,3 @@ def calculate_percentage(y):
         output = math.floor(percentage_pos)
 
         return output
-
-print(calculate_angle(-2047, 2047, 0, 2047))

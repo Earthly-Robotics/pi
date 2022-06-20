@@ -1,8 +1,8 @@
-import Singleton
+from Singleton import Singleton
 from Logger.ILogger import ILogger
 
 
-class ConsoleLogger(ILogger, metaclass=Singleton):
+class ConsoleLogger(ILogger):
 
     def log(self, string):
         print(string)

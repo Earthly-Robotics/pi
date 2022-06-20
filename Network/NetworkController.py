@@ -22,6 +22,7 @@ from threading import Thread
 class NetworkController:
     threads = list()
 
+    # def __init__(self, arduino_controller):
     def __init__(self, arduino_controller):
         match platform.system():
             case "Windows":
@@ -49,7 +50,6 @@ class NetworkController:
         self.arduino_controller = arduino_controller
         self.servo_controller = ServoController(arduino_controller)
         self.wheels_controller = WheelsController(self.servo_controller)
-
         self.app_components = self.__init_components()
 
     def __init_components(self):
@@ -61,13 +61,13 @@ class NetworkController:
         self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
         app_components.append(self.accel_gyro_meter)
 
-        self.camera = Camera(network_controller=self)
-        app_components.append(self.camera)
+        # self.camera = Camera(network_controller=self)
+        # app_components.append(self.camera)
 
-        self.vision_controller = VisionController(cam=self.camera,
-                                                  wheels_controller=self.wheels_controller,
-                                                  network_controller=self)
-        app_components.append(self.vision_controller)
+        # self.vision_controller = VisionController(cam=self.camera,
+        #                                           wheels_controller=self.wheels_controller,
+        #                                           network_controller=self)
+        # app_components.append(self.vision_controller)
         return app_components
 
     def setup_server(self):
@@ -95,7 +95,8 @@ class NetworkController:
 
             try:
                 message = json.loads(message)
-                self.__handle_message(message)
+                if message is not None:
+                    self.__handle_message(message)
             except json.JSONDecodeError as err:
                 self.logger.log(str(err))
                 bytes_to_send = str.encode("Message wasn't a JSON string")
@@ -111,14 +112,15 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y, self.limiter))
+                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y, self.limiter), daemon=True)
                 LJ_thread.start()
             case "RJ":
+                pass
                 y = message["y"]
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                self.servo_controller.power_servo(y, self.profile)
+                # self.servo_controller.power_servo(y, self.profile)
             case "PB":
                 pass
                 p = message["p"]
@@ -128,7 +130,7 @@ class NetworkController:
                     self.limiter = message["l"]
                 else:
                     self.rotate_magnet = not self.rotate_magnet
-                    self.servo_controller.control_magnet(self.rotate_magnet)
+                    # self.servo_controller.control_magnet(self.rotate_magnet)
             case "RJB":
                 pass
             case "LJB":

@@ -10,18 +10,19 @@ from Logger.FileLogger import FileLogger
 
 async def main():
     arduino_controller = arduino_setup()
-    arduino_controller.close()
+
     thread = None
     try:
-        server = NetworkController()
-        thread = threading.Thread(target=server.setup_server, daemon=True, args=(arduino_controller,))
+        server = NetworkController(arduino_controller)
+        # thread = threading.Thread(target=server.setup_server, daemon=True, args=(arduino_controller,))
+        thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
     except KeyboardInterrupt:
         pass
     finally:
         if thread is not None:
             thread.join()
-
+            arduino_controller.close()
 
 def arduino_setup():
     controller = ArduinoController()
@@ -47,3 +48,4 @@ if __name__ == "__main__":
         logger.log("Something went wrong in MAIN: {0}".format(e))
     finally:
         GPIO.cleanup()
+
