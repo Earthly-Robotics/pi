@@ -1,7 +1,12 @@
 import asyncio
-import threading
 import platform
+import threading
+import traceback
+
 import RPi.GPIO as GPIO
+
+from Logger.ConsoleLogger import ConsoleLogger
+from Logger.FileLogger import FileLogger
 from Network.NetworkController import NetworkController
 from ComponentControllers.ArduinoController import ArduinoController
 from Logger.ConsoleLogger import ConsoleLogger
@@ -9,8 +14,9 @@ from Logger.FileLogger import FileLogger
 
 
 async def main():
-    arduino_controller = arduino_setup()
-
+    # arduino_controller = arduino_setup()
+    # arduino_controller.close()
+    server = None
     thread = None
     try:
         server = NetworkController(arduino_controller)
@@ -20,6 +26,8 @@ async def main():
     except KeyboardInterrupt:
         pass
     finally:
+        if server is not None:
+            server.stop_server()
         if thread is not None:
             thread.join()
             arduino_controller.close()
@@ -45,7 +53,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.log("Keyboard Interrupt!")
     except Exception as e:
-        logger.log("Something went wrong in MAIN: {0}".format(e))
+        logger.log("Something went wrong in MAIN:\n{0}".format(e))
+        logger.log(traceback.format_exc())
     finally:
         GPIO.cleanup()
-

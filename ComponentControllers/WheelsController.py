@@ -126,17 +126,20 @@ class WheelsController:
         self.motor_left.move(math.floor(power_left_motor / limiter))
         self.motor_right.move(math.floor(power_right_motor / limiter))
 
-    def turn_right(self):
-        self.motor_left.move(math.floor(50))
-        self.motor_right.move(math.floor(-50))
+    def turn_right(self, percentage):
+        self.motor_left.move(math.floor(percentage))
+        self.motor_right.move(math.floor(-percentage))
 
-    def turn_left(self):
-        self.motor_left.move(math.floor(-50))
-        self.motor_right.move(math.floor(50))
+    def turn_left(self, percentage):
+        self.motor_left.move(math.floor(-percentage))
+        self.motor_right.move(math.floor(percentage))
 
     def stop(self):
         self.motor_left.move(0)
         self.motor_right.move(0)
 
+    def reset_motors(self):
+        self.motor_left.pwm.stop()
+        self.motor_right.pwm.stop()
 
 # https://sensorkit.joy-it.net/en/sensors/ky-023
