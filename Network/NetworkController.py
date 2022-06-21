@@ -104,6 +104,11 @@ class NetworkController:
         self.stop_server()
 
     def __handle_message(self, message):
+        """
+        Handles the message based on the message type.
+
+        :param message: Received message from the socket
+        """
         self.timeout_start = time.time()
         match (message["MT"]):
             case "LJ":
