@@ -41,6 +41,7 @@ class VisionController:
     cam_half_width = 0
 
     def __init__(self, cam, wheels_controller, network_controller):
+        self.previous_error = 0
         self.client_ip = None
         self.cam = cam
         self.wheels_controller = wheels_controller
@@ -81,14 +82,17 @@ class VisionController:
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
                 send_feed_task = asyncio.create_task(self.send_feed(img))
-                if self.error > 0:
-                    self.wheels_controller.turn_right()
-                elif self.error < 0:
-                    self.wheels_controller.turn_left()
+                if self.previous_error == 0:
+                    self.previous_error = self.error
+                elif self.previous_error > self.error:
+                    self.wheels_controller.move(20, -20)
+                    self.previous_error = self.error
+                elif self.previous_error < self.error:
+                    self.wheels_controller.move(-20, 20)
+                    self.previous_error = self.error
                 else:
-                    self.wheels_controller.stop()
-            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
-            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
+                    self.wheels_controller.move(0, 0)
+                    self.previous_error = self.error
             if self.DEBUG and os == "Linux":
                 await asyncio.gather(send_feed_task)
                 time.sleep(max(1. / 24 - (time.time() - start), 0))

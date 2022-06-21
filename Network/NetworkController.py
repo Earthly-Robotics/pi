@@ -61,13 +61,13 @@ class NetworkController:
         self.accel_gyro_meter = GyroAccelerometer(network_controller=self)
         app_components.append(self.accel_gyro_meter)
 
-        # self.camera = Camera(network_controller=self)
-        # app_components.append(self.camera)
+        self.camera = Camera(network_controller=self)
+        app_components.append(self.camera)
 
-        # self.vision_controller = VisionController(cam=self.camera,
-        #                                           wheels_controller=self.wheels_controller,
-        #                                           network_controller=self)
-        # app_components.append(self.vision_controller)
+        self.vision_controller = VisionController(cam=self.camera,
+                                                  wheels_controller=self.wheels_controller,
+                                                  network_controller=self)
+        app_components.append(self.vision_controller)
         return app_components
 
     def setup_server(self):
