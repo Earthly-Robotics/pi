@@ -112,7 +112,7 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y, self.limiter), daemon=True)
+                LJ_thread = threading.Thread(target=self.wheels_controller.get_percentage, args=(x, y, self.limiter), daemon=True)
                 LJ_thread.start()
             case "RJ":
                 pass

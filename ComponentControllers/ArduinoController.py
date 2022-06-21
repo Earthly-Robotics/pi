@@ -8,7 +8,7 @@ class ArduinoController:
     n_reads = 4
     delay = 20
     baudrate = 9600
-    port = "/dev/ttyUSB1"
+    port = "/dev/ttyUSB0"
 
     def connect(self) -> None:
         """

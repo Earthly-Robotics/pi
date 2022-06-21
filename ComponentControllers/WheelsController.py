@@ -21,8 +21,10 @@ class WheelsController:
         self.angle = 0
         self.last_angle = 0
         
-    def move_wheels(self, x, y, limiter):
+    def get_percentage(self, x, y, limiter):
         """
+        Calculates the percentage of x and y based on how far it is from the max_value of the x or y-axis.
+
         :param x: The x value of the joystick
         :param y: The y value of the joystick
         :param limiter: limits the speed
@@ -103,19 +105,26 @@ class WheelsController:
             self.move(per_x, per_y, limiter)
 
     def move(self, per_x, per_y, limiter):
+        """
+        Calculates the speed of both the left and right motor based on the percentages of the x-axis and y-axis of the joystick.
+
+        :param per_x: The percentage of x based on the x-axis of the joystick
+        :param per_y: The percentage of y based on the y-axis of the joystick
+        :param limiter: limits the speed of the motors. 1 = 100%; 2 = 50%; 3 = 33%
+        """
         right_plus_left = ((100 - abs(per_x)) * (per_y / 100) + per_y)  # 200
         right_minus_left = ((100 - abs(per_y)) * (per_x / 100) + per_x)  # 0
         power_left_motor = (right_plus_left - right_minus_left) / 2
         power_right_motor = (right_plus_left + right_minus_left) / 2
-        print(self.angle)
+        # print(self.angle)
         # if self.angle >= self.last_angle:
         #     for i in range(self.last_angle, self.angle, 1):
         #         self.servo_controller.send_message("back wheel;" + str(self.angle))
         # else:
         #     for i in range(self.last_angle, self.angle, -1):
         #         self.servo_controller.send_message("back wheel;" + str(self.angle))
-        # self.motor_left.move(math.floor(power_left_motor / limiter))
-        # self.motor_right.move(math.floor(power_right_motor / limiter))
+        self.motor_left.move(math.floor(power_left_motor / limiter))
+        self.motor_right.move(math.floor(power_right_motor / limiter))
 
     def turn_right(self):
         self.motor_left.move(math.floor(50))
