@@ -185,6 +185,10 @@ class NetworkController:
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
                     self.vision_controller.tracking))
+                if self.vision_controller.tracking:
+                    self.camera = self.camera.start_capturing()
+                else:
+                    self.camera = self.camera.stop_capturing()
                 self.toggle_send(sending=self.vision_controller.tracking,
                                  thread_name="BLUE_BLOCK",
                                  target=self.vision_controller.start_track_blue_cube,
@@ -200,6 +204,10 @@ class NetworkController:
                 self.camera.sending = not self.camera.sending
                 self.logger.log("Received CAMERA. Will it start sending? {0}".format(
                     self.camera.sending))
+                if self.camera.sending:
+                    self.camera = self.camera.start_capturing()
+                else:
+                    self.camera = self.camera.stop_capturing()
                 self.toggle_send(sending=self.camera.sending,
                                  thread_name=self.camera.msg_type,
                                  target=self.camera.update_app_data,
@@ -339,6 +347,7 @@ class NetworkController:
             self.threads.remove(thread)
 
         if self.camera is not None:
+            self.camera.stop_capturing()
             self.camera.camera.release()
         self.wheels_controller.stop()
 
