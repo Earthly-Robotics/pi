@@ -8,7 +8,9 @@ import RPi.GPIO as GPIO
 from Logger.ConsoleLogger import ConsoleLogger
 from Logger.FileLogger import FileLogger
 from Network.NetworkController import NetworkController
-#from ComponentControllers.ArduinoController import ArduinoController
+from ComponentControllers.ArduinoController import ArduinoController
+from Logger.ConsoleLogger import ConsoleLogger
+from Logger.FileLogger import FileLogger
 
 
 async def main():
@@ -17,7 +19,8 @@ async def main():
     server = None
     thread = None
     try:
-        server = NetworkController()
+        server = NetworkController(arduino_controller)
+        # thread = threading.Thread(target=server.setup_server, daemon=True, args=(arduino_controller,))
         thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
     except KeyboardInterrupt:
@@ -27,7 +30,7 @@ async def main():
             server.stop_server()
         if thread is not None:
             thread.join()
-
+            arduino_controller.close()
 
 def arduino_setup():
     controller = ArduinoController()

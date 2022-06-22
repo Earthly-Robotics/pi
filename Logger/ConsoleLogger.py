@@ -1,3 +1,4 @@
+from Singleton import Singleton
 from Logger.ILogger import ILogger
 
 

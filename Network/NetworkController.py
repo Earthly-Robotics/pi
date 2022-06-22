@@ -6,6 +6,7 @@ import time
 import RPi.GPIO as GPIO
 
 from CameraFeed import CameraFeed
+from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
@@ -19,7 +20,8 @@ from ComponentControllers.WheelsController import WheelsController
 class NetworkController:
     threads = list()
 
-    def __init__(self):
+    # def __init__(self, arduino_controller):
+    def __init__(self, arduino_controller):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -37,11 +39,16 @@ class NetworkController:
         self.udp_server_socket.settimeout(25)
         self.profile = 0
         self.timeout = 20
+        self.limiter = 1
+        self.rotate_magnet = False
+        self.timeout = 600
         self.timeout_start = 0
         self.app_connected = False
         self._enabled = True
 
-        self.wheels_controller = WheelsController()
+        self.arduino_controller = arduino_controller
+        self.servo_controller = ServoController(arduino_controller)
+        self.wheels_controller = WheelsController(self.servo_controller)
         self.app_components = self.__init_components()
 
     def __init_components(self):
@@ -110,7 +117,8 @@ class NetworkController:
 
             try:
                 message = json.loads(message)
-                self.__handle_message(message)
+                if message is not None:
+                    self.__handle_message(message)
             except json.JSONDecodeError as err:
                 self.logger.log(str(err))
                 bytes_to_send = str.encode("Message wasn't a JSON string")
@@ -118,6 +126,11 @@ class NetworkController:
         self.stop_server()
 
     def __handle_message(self, message):
+        """
+        Handles the message based on the message type.
+
+        :param message: Received message from the socket
+        """
         self.timeout_start = time.time()
         match (message["MT"]):
             case "LJ":
@@ -126,30 +139,25 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                LJ_thread = threading.Thread(target=self.wheels_controller.move_wheels, args=(x, y))
+                LJ_thread = threading.Thread(target=self.wheels_controller.get_percentage, args=(x, y, self.limiter), daemon=True)
                 LJ_thread.start()
-                # self.wheels_controller.move_wheels(x, y)
-                # print("LeftJoystick: x : {}, y : {}, p : {}".format(x, y, p))
             case "RJ":
                 pass
-                # x = message["x"]
-                # y = message["y"]
-                # p = message["p"]
-                # if self.profile != p:
-                #     self.profile = p
-                # self.logger.log("RightJoystick: x : {}, y : {}".format(x, y))
-                # msg_from_server = "Data RightJoystick received"
-                # bytes_to_send = str.encode(msg_from_server)
-                # self.send_message(bytes_to_send, self.client_address)
+                y = message["y"]
+                p = message["p"]
+                if self.profile != p:
+                    self.profile = p
+                # self.servo_controller.power_servo(y, self.profile)
             case "PB":
                 pass
-                # p = message["p"]
-                # self.profile = p
-                # msg_from_server = "Profile Button received"
-                # bytes_to_send = str.encode(msg_from_server)
-                # self.send_message(bytes_to_send, self.client_address)
-            case "VB":
-                pass
+                p = message["p"]
+                self.profile = p
+            case "AB":
+                if self.profile == 0:
+                    self.limiter = message["l"]
+                else:
+                    self.rotate_magnet = not self.rotate_magnet
+                    # self.servo_controller.control_magnet(self.rotate_magnet)
             case "RJB":
                 pass
             case "LJB":
