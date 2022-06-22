@@ -158,12 +158,22 @@ class NetworkController:
             case "SOLO_DANCE":
                 pass
             case "PLANT":
-                # To Do: get msg variables, go to blue block before starting planting
-                rows = message[""]
-                seeds = message[""]
-                row_dist = message[""]
-                seed_dist = message[""]
-                AutoSeedPlant.plantSeeds(2, 4, 2, 2)  # rows, seeds, sec dist till next row, sec dist till next seed
+                # To Do: get msg variables
+                rows = message["r"]
+                seeds = message["s"]
+                row_dist = message["rd"]
+                seed_dist = message["sd"]
+                #go to blue block
+                self.vision_controller.tracking = not self.vision_controller.tracking
+                self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
+                    self.vision_controller.tracking))
+                self.toggle_send(sending=self.vision_controller.tracking,
+                                 thread_name="BLUE_BLOCK",
+                                 target=self.vision_controller.start_go_to_blue_cube,
+                                 args=(self.client_address,)
+                                 )
+                #start planting
+                AutoSeedPlant.plantSeeds(rows, seeds, row_dist, seed_dist)  # rows, seeds, sec dist till next row, sec dist till next seed
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(

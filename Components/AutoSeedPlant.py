@@ -12,16 +12,19 @@ class AutoSeedPlant:
         self.gyro_accelerometer = GyroAccelerometer()
         self.arduino_controller = ArduinoController()
 
-    def findStartPos(self):
-        # To Do: find start pos with blue block
-        pass
+    def calcDist(self,dist):
+        # To Do: calc distance in sec between rows & seeds , cm to sec?
+        velocity = self.gyro_accelerometer.format_commponent_data();
+        cms = velocity * 27.777778
+        sec = 1/(cms/dist)
+        return sec
 
     def plantSeeds(self,rows,amount,rSpace,sSpace):
         # To Do: space berekenen per sec
         rows = rows
         amountseeds = amount
-        rowspace = rSpace #space in seconds
-        seedspace = sSpace  # space in seconds
+        rowspace = self.calcDist(rSpace) #space in cm converted to sec
+        seedspace = self.calcDist(sSpace)  # space in cm converted to sec
 
         for x in range(rows):
             for y in range(amountseeds):

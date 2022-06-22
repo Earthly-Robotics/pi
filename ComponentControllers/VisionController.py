@@ -140,3 +140,47 @@ class VisionController:
 
     def stop_sending(self):
         self.tracking = False
+
+    def start_go_to_blue_cube(self, client_ip):
+        asyncio.run(self.go_to_blue_cube(client_ip))
+
+    async def go_to_blue_cube(self, client_ip):
+        self.client_ip = client_ip
+        while self.tracking:
+            start = time.time()
+            img = self.cam.get_image()
+            if img is None:
+                continue
+            hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+            lower_mask = cv.inRange(hsv, self.lower_blue_low, self.upper_blue_low)
+            upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
+            mask = lower_mask | upper_mask
+            kernel = np.ones((9, 9), np.uint8)
+            mask = cv.erode(mask, kernel)
+            contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+            self.error = 0
+            for cnt in contours:
+                area = cv.contourArea(cnt)
+                if self.lower_area < area < self.upper_area:
+                    approx = cv.approxPolyDP(cnt, 0.01 * cv.arcLength(cnt, True), False)
+                    if self.lower_shape < len(approx) < self.upper_shape:
+                        if self.DEBUG:
+                            cv.drawContours(img, [cnt], -1, (0, 255, 255), 2)
+                        m = cv.moments(cnt)
+                        center_x = int(m["m10"] / m["m00"])
+                        self.error = self.cam_half_width - center_x
+            os = platform.system()
+            if self.DEBUG and os == "Windows":
+                cv.imshow('result', img)
+                cv.imshow('mask', mask)
+            elif self.DEBUG and os == "Linux":
+                if self.error > 0:
+                    self.wheels_controller.turn_right()
+                elif self.error < 0:
+                    self.wheels_controller.turn_left()
+                else:
+                    self.wheels_controller.stop()
+            self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
+            self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
+            if self.DEBUG and os == "Linux":
+                time.sleep(max(1. / 24 - (time.time() - start), 0))
