@@ -51,7 +51,7 @@ class VisionController:
         while self.tracking:
             if self.cam is None:
                 continue
-            img = self.cam.get_image()
+            img = self.cam.get_frame()
             if img is None:
                 continue
             img = img[self.y:self.y + self.h, self.x:self.x + self.w]
@@ -76,15 +76,17 @@ class VisionController:
                 cv.imshow('result', img)
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
-                if abs(self.error) < 40:
+                task = asyncio.create_task(self.send_feed(img))
+                if abs(self.error) < 30:
                     self.error = 0
                     self.wheels_controller.stop()
                 elif self.error < 0:
-                    self.error = abs(max(self.error, -20))
+                    self.error = abs(max(self.error, -50))
                     self.wheels_controller.turn_right(self.error)
                 elif self.error > 0:
-                    self.error = abs(min(self.error, 20))
+                    self.error = abs(min(self.error, 50))
                     self.wheels_controller.turn_left(self.error)
+                await task
 
     def get_debug_image(self):
         return self._img
