@@ -190,11 +190,11 @@ class NetworkController:
                     self.logger.log("Can't process LINE_DANCE. Camera is None")
                     return
                 self.dance_controller.sending = not self.dance_controller.sending
+                self.logger.log("Received LINE_DANCE")
                 if self.dance_controller.sending:
                     self.dance_controller = self.dance_controller.line_dance()
                 else:
                     self.dance_controller = self.dance_controller.stop_sending()
-                self.logger.log("Received LINE_DANCE")
                 data = json.dumps({
                     "MT": "LINE_DANCE"
                 })

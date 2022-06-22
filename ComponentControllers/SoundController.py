@@ -107,8 +107,8 @@ class SoundController:
         bpm_mean = int(np.mean(self.bpms) * 10) // 10
 
         self.counter += 1
-        print("bpm_mean: " + str(bpm_mean))
-        print("counter: " + str(counter))
+        # print("bpm_mean: " + str(bpm_mean))
+        # print("counter: " + str(counter))
         return bpm_mean  # , counter
 
     def stop_sending(self):
