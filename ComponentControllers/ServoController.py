@@ -24,7 +24,9 @@ class ServoController:
         self.min_degrees = -150
 
     def control_magnet(self, magnet_status):
-        if magnet_status == False:
+        if self.arduino_controller is None:
+            return
+        if magnet_status is False:
             magnet_status = True
             self.arduino_controller.send_message("magnet;30")
         else:
@@ -32,6 +34,8 @@ class ServoController:
             self.arduino_controller.send_message("magnet;-30")
 
     def power_servo(self, y, profile):
+        if self.arduino_controller is None:
+            return
         result = calculate_percentage(y)
         if profile == 0:
 
@@ -57,4 +61,6 @@ class ServoController:
                 self.arduino_controller.send_message(current_deg["ID"] + ";" + current_deg["POS"])
 
     def send_message(self, message):
+        if self.arduino_controller is None:
+            return
         self.arduino_controller.send_message(message)
