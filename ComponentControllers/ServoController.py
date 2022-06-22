@@ -1,4 +1,4 @@
-import math
+from Utility import calculate_percentage
 
 
 class ServoController:
@@ -35,24 +35,8 @@ class ServoController:
             magnet_status = False
             self.arduino_controller.send_message("magnet;-30")
 
-# private function to calculate how much precent the joystick is giving off
-    def __calculate_percentage(self, y):
-        # forwards
-        if y > 0 and y <= 2047:
-            percentage_pos = math.floor(((y) / 2047) * 100)
-            output = math.floor((percentage_pos))
-
-        # backwards
-        elif y < -400 and y >= -2047:
-            percentage_pos = math.floor(((y + 400) / 1647) * 100)
-            output = math.floor((percentage_pos))
-
-            return output
-
-# power the servo based on the percentage
     def power_servo(self, y, profile):
-        result = self.calculate_percentage(y)
-# profile 0 is to control the wheel servos
+        result = calculate_percentage(y)
         if profile == 0:
 
             # vanwege tandwielen x2
@@ -60,9 +44,7 @@ class ServoController:
             current_deg = self.servo_list[1]
             new_degrees = (current_deg["POS"] + power)*2
             current_deg["POS"] = new_degrees
-            # to prevent the servo to spin into the deathzone there's a limit
-            if(new_degrees < 150 and new_degrees > -150):
-                # send string to arduino
+            if 150 > new_degrees > -150:
                 self.arduino_controller.send_message(str.format("{0};{1}", current_deg["ID"], current_deg["POS"]))
 
                 current_deg = self.servo_list[2]
@@ -71,14 +53,13 @@ class ServoController:
                 # send string to arduino
                 self.arduino_controller.send_message(str.format("{0};{1}", current_deg["ID"], current_deg["POS"]))
 
-
-# profile 1 is to control the arm servo
         elif profile == 1:
             power = result / 30
             current_deg = self.servo_list[0]
             new_degrees = current_deg["POS"] + power
             current_deg["POS"] = new_degrees
-            # to prevent the servo to spin into the deathzone there's a limit
-            if (new_degrees < 150 and new_degrees > -150):
-                # send string to arduino
+            if 150 > new_degrees > -150:
                 self.arduino_controller.send_message(current_deg["ID"] + ";" + current_deg["POS"])
+
+    def send_message(self, message):
+        self.arduino_controller.send_message(message)

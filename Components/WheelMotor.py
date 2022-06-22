@@ -18,11 +18,11 @@ class WheelMotor:
         self.pwm = GPIO.PWM(self.pwm_pin, 1000)  # Sets pwm frequency to 1000
         self.lock = threading.Lock()
 
-    async def move(self, power):
+    def move(self, power):
         """
-        Moves motor based on power
+        Moves motor based on power.
+
         :param power: amount of power sent to motor (-100 to 100)
-        :return:
         """
 
         self.pwm.start(abs(self.last_percentage))

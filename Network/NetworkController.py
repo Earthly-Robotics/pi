@@ -5,10 +5,10 @@ import socket
 import json
 import threading
 import time
+import RPi.GPIO as GPIO
 
-from ComponentControllers.ServoController import ServoController
 from CameraFeed import CameraFeed
-from ComponentControllers.SoundController import SoundController
+from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
 from ComponentControllers.WheelsController import WheelsController
 from Components.Camera import Camera
@@ -24,7 +24,8 @@ from threading import Thread
 class NetworkController:
     threads = list()
 
-    def __init__(self):
+    # def __init__(self, arduino_controller):
+    def __init__(self, arduino_controller):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -39,18 +40,19 @@ class NetworkController:
         self.port = int(self.params['port'])
         self.buffer_size = 1000000
         self.udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.udp_server_socket.settimeout(25)
         self.profile = 0
+        self.timeout = 20
         self.limiter = 1
         self.rotate_magnet = False
         self.timeout = 600
         self.timeout_start = 0
-        self.toggle_send_timeout = 600
-        self.toggle_send_timeout_start = 0
         self.app_connected = False
+        self._enabled = True
 
-        self.sound_controller = SoundController()
-        self.wheels_controller = WheelsController()
-        self.servo_controller = ServoController()
+        self.arduino_controller = arduino_controller
+        self.servo_controller = ServoController(arduino_controller)
+        self.wheels_controller = WheelsController(self.servo_controller)
         self.app_components = self.__init_components()
 
     def __init_components(self):
@@ -93,8 +95,12 @@ class NetworkController:
         print("Own Port: ", self.port)
         self.logger.log("Server started listening...")
         self.timeout_start = time.time()
-        while time.time() < self.timeout_start + self.timeout:
-            bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+        while True:
+            try:
+                bytes_address_pair = self.udp_server_socket.recvfrom(self.buffer_size)
+            except Exception as e:
+                print("Something went wrong with socket: %s " % e)
+                break
 
             message = bytes_address_pair[0].decode()
             address = bytes_address_pair[1]
@@ -102,7 +108,8 @@ class NetworkController:
 
             try:
                 message = json.loads(message)
-                self.__handle_message(message)
+                if message is not None:
+                    self.__handle_message(message)
             except json.JSONDecodeError as err:
                 self.logger.log(str(err))
                 bytes_to_send = str.encode("Message wasn't a JSON string")
@@ -110,8 +117,111 @@ class NetworkController:
         self.stop_server()
 
     def __handle_message(self, message):
+        """
+        Handles the message based on the message type.
+
+        :param message: Received message from the socket
+        """
         self.timeout_start = time.time()
-        self.sound_controller.get_beat()
+        match (message["MT"]):
+            case "LJ":
+                x = message["x"]
+                y = message["y"]
+                p = message["p"]
+                if self.profile != p:
+                    self.profile = p
+                LJ_thread = threading.Thread(target=self.wheels_controller.get_percentage, args=(x, y, self.limiter), daemon=True)
+                LJ_thread.start()
+            case "RJ":
+                pass
+                y = message["y"]
+                p = message["p"]
+                if self.profile != p:
+                    self.profile = p
+                # self.servo_controller.power_servo(y, self.profile)
+            case "PB":
+                pass
+                p = message["p"]
+                self.profile = p
+            case "AB":
+                if self.profile == 0:
+                    self.limiter = message["l"]
+                else:
+                    self.rotate_magnet = not self.rotate_magnet
+                    # self.servo_controller.control_magnet(self.rotate_magnet)
+            case "RJB":
+                pass
+            case "LJB":
+                pass
+            case "PING":
+                self.timeout_start = time.time()
+                self.logger.log("Received PING.")
+                if not self.app_connected:
+                    for thread in self.threads:
+                        if thread.name == "PING":
+                            thread.join()
+                    self.app_connected = True
+                    self.logger.log("App connected")
+                    t = threading.Thread(target=self.check_toggle_send_connection)
+                    t.name = "PING"
+                    self.threads.append(t)
+                    t.start()
+                ping = {
+                    "MT": "PING"
+                }
+                data = json.dumps(ping)
+                self.send_message(data.encode(), self.client_address)
+            case "LINE_DANCE":
+                pass
+            case "SOLO_DANCE":
+                pass
+            case "PLANT":
+                pass
+            case "BLUE_BLOCK":
+                if self.vision_controller is None:
+                    self.logger.log("Can't process BLUE_BLOCK. Vision_Controller is None")
+                    return
+                self.vision_controller.tracking = not self.vision_controller.tracking
+                self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
+                    self.vision_controller.tracking))
+                if self.vision_controller.tracking:
+                    self.camera = self.camera.start_capturing()
+                else:
+                    self.camera = self.camera.stop_capturing()
+                self.toggle_send(sending=self.vision_controller.tracking,
+                                 thread_name="BLUE_BLOCK",
+                                 target=self.vision_controller.start_track_blue_cube,
+                                 args=(self.client_address,)
+                                 )
+                block_values = self.vision_controller.get_values()
+                data = json.dumps(block_values)
+                self.send_message(data.encode(), self.client_address)
+            case "CAMERA":
+                if self.camera is None:
+                    self.logger.log("Can't process CAMERA. Camera is None")
+                    return
+                self.camera.sending = not self.camera.sending
+                self.logger.log("Received CAMERA. Will it start sending? {0}".format(
+                    self.camera.sending))
+                if self.camera.sending:
+                    self.camera = self.camera.start_capturing()
+                else:
+                    self.camera = self.camera.stop_capturing()
+                self.toggle_send(sending=self.camera.sending,
+                                 thread_name=self.camera.msg_type,
+                                 target=self.camera.update_app_data,
+                                 args=(self.client_address,)
+                                 )
+            case "CAMERA_DEBUG":
+                pass
+                # if self.camera_feed is None:
+                #     self.logger.log("Can't process CAMERA_DEBUG. Camera_Feed is None")
+                # self.logger.log("Received CAMERA_DEBUG")
+                # self.camera_feed.sending = not self.camera_feed.sending
+                # self.toggle_send(sending=self.camera_feed.sending,
+                #                  thread_name=self.camera_feed.msg_type,
+                #                  target=self.camera_feed.update_app_data,
+                #                  args=(self.client_address,))
 
         #TODO: uncomment this
 
@@ -266,7 +376,7 @@ class NetworkController:
         :type args: any or None
         :return:
         """
-        self.toggle_send_timeout_start = time.time()
+        self.timeout_start = time.time()
         if sending is False:
             for thread in self.threads:
                 if thread.name == thread_name:
@@ -298,23 +408,29 @@ class NetworkController:
         """
         Resets all the components connected to the app when the app reaches timeout.
         """
-        while time.time() < self.toggle_send_timeout_start + self.toggle_send_timeout:
+        while time.time() < self.timeout_start + self.timeout:
             time.sleep(4)
             continue
         self.logger.log("App disconnected")
         self.__stop_components()
+        GPIO.cleanup()
+        self.wheels_controller.reset_motors()
+        self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
         self.app_connected = False
 
-    def stop_server(self):
+    def __stop_server(self):
         """
         Cleans up the server.
         """
         self.logger.log("Stopping the server...")
         self.timeout = 0
-        self.toggle_send_timeout = 0
+        self.timeout = 0
         self.app_connected = False
         self.__stop_components()
+
+    def stop_server(self):
+        self._enabled = False
 
     def __stop_components(self):
         """
@@ -322,13 +438,15 @@ class NetworkController:
         """
         for comp in self.app_components:
             comp.stop_sending()
-            time.sleep(0.5)
         for thread in self.threads:
             if thread.name == "PING":
                 continue
             thread.join()
             self.threads.remove(thread)
-        self.camera.camera.release()
+
+        if self.camera is not None:
+            self.camera.stop_capturing()
+            self.camera.camera.release()
         self.wheels_controller.stop()
 
     def send_message(self, bytes_to_send, address):
