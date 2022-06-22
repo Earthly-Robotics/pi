@@ -20,9 +20,9 @@ class WheelMotor:
 
     def move(self, power):
         """
-        Moves motor based on power
+        Moves motor based on power.
+
         :param power: amount of power sent to motor (-100 to 100)
-        :return:
         """
 
         self.pwm.start(abs(self.last_percentage))

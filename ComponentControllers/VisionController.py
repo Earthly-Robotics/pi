@@ -12,30 +12,19 @@ from ComponentControllers.WheelsController import WheelsController
 
 
 class VisionController:
-    MAX_SPEED = 0.1
     DEBUG = True
     tracking = False
 
     cam = None
     wheels_controller = None
 
-    lower_area = 100
-    upper_area = 800
-    lower_shape = 5
-    upper_shape = 14
+    lower_area = 200
+    upper_area = 700
+    lower_shape = 7
+    upper_shape = 24
 
-    blue_low = np.uint8([[[0, 33, 86]]])
-    blue_high = np.uint8([[[1, 149, 255]]])
-    hsv_blue_low = cv.cvtColor(blue_low, cv.COLOR_RGB2HSV)
-    hsv_blue_high = cv.cvtColor(blue_high, cv.COLOR_RGB2HSV)
-    lower_blue_low = hsv_blue_low[0][0][0] - 10, 100, 100
-    upper_blue_low = hsv_blue_low[0][0][0] + 10, 255, 255
-    lower_blue_low = np.array(lower_blue_low)
-    upper_blue_low = np.array(upper_blue_low)
-    lower_blue_high = hsv_blue_high[0][0][0] - 10, 150, 150
-    upper_blue_high = hsv_blue_high[0][0][0] + 10, 255, 255
-    lower_blue_high = np.array(lower_blue_high)
-    upper_blue_high = np.array(upper_blue_high)
+    lower_blue = np.array([60, 29, 11])
+    upper_blue = np.array([119, 236, 202])
 
     error = 0
     cam_half_width = 0
@@ -47,7 +36,12 @@ class VisionController:
         self.wheels_controller = wheels_controller
         self.network_controller = network_controller
         if self.cam is not None:
-            self.cam_half_width = self.cam.get_width() / 2
+            self.cam_half_width = self.cam.get_width() // 2
+            half_height = self.cam.get_height() // 2
+            self.w = 300
+            self.h = 200
+            self.x = int(self.cam_half_width - self.w / 2)
+            self.y = int(half_height - self.h / 2)
 
     def start_track_blue_cube(self, client_ip):
         asyncio.run(self.track_blue_cube(client_ip))
@@ -55,17 +49,15 @@ class VisionController:
     async def track_blue_cube(self, client_ip):
         self.client_ip = client_ip
         while self.tracking:
-            start = time.time()
             if self.cam is None:
                 continue
-            img = self.cam.get_image()
+            img = self.cam.get_frame()
             if img is None:
                 continue
+            img = img[self.y:self.y + self.h, self.x:self.x + self.w]
             hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-            lower_mask = cv.inRange(hsv, self.lower_blue_low, self.upper_blue_low)
-            upper_mask = cv.inRange(hsv, self.lower_blue_high, self.upper_blue_high)
-            mask = lower_mask | upper_mask
-            kernel = np.ones((9, 9), np.uint8)
+            mask = cv.inRange(hsv, self.lower_blue, self.upper_blue)
+            kernel = np.ones((7, 7), np.uint8)
             mask = cv.erode(mask, kernel)
             contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             self.error = 0
@@ -75,28 +67,26 @@ class VisionController:
                     approx = cv.approxPolyDP(cnt, 0.01 * cv.arcLength(cnt, True), False)
                     if self.lower_shape < len(approx) < self.upper_shape:
                         if self.DEBUG:
-                            cv.drawContours(img, [cnt], -1, (0, 255, 255), 2)
+                            cv.drawContours(img, [cnt], -1, (0, 255, 255), 2)  # Draws a yellow outline
                         m = cv.moments(cnt)
                         center_x = int(m["m10"] / m["m00"])
-                        self.error = self.cam_half_width - center_x
+                        self.error = 100 / (self.w // 2) * ((self.w // 2) - center_x)
             os = platform.system()
-            self._img = img
             if self.DEBUG and os == "Windows":
                 cv.imshow('result', img)
                 cv.imshow('mask', mask)
             elif self.DEBUG and os == "Linux":
-                send_feed_task = asyncio.create_task(self.send_feed(img))
-                # if self.error > 0:
-                #     self.wheels_controller.turn_right()
-                # elif self.error < 0:
-                #     self.wheels_controller.turn_left()
-                # else:
-                #     self.wheels_controller.stop()
-            # self.wheels_controller.set_velocity("left", - self.error * self.MAX_SPEED)  # Linker Wiel
-            # self.wheels_controller.set_velocity("right", self.error * self.MAX_SPEED)  # Rechter Wiel
-            if self.DEBUG and os == "Linux":
-                await asyncio.gather(send_feed_task)
-                time.sleep(max(1. / 24 - (time.time() - start), 0))
+                task = asyncio.create_task(self.send_feed(img))
+                if abs(self.error) < 30:
+                    self.error = 0
+                    self.wheels_controller.stop()
+                elif self.error < 0:
+                    self.error = abs(max(self.error, -50))
+                    self.wheels_controller.turn_right(self.error)
+                elif self.error > 0:
+                    self.error = abs(min(self.error, 50))
+                    self.wheels_controller.turn_left(self.error)
+                await task
 
     def get_debug_image(self):
         return self._img
@@ -116,19 +106,15 @@ class VisionController:
         parsed = self.__int_try_parse(msg["Lower_Area"])
         if parsed[1]:
             self.lower_area = parsed[0]
-            # print("lower_area: ", self.lower_area)
         parsed = self.__int_try_parse(msg["Upper_Area"])
         if parsed[1]:
             self.upper_area = parsed[0]
-            # print("upper_area: ", self.upper_area)
         parsed = self.__int_try_parse(msg["Lower_Shape"])
         if parsed[1]:
             self.lower_shape = parsed[0]
-            # print("lower_shape: ", self.lower_shape)
         parsed = self.__int_try_parse(msg["Upper_Shape"])
         if parsed[1]:
             self.upper_shape = parsed[0]
-            # print("upper_shape: ", self.upper_shape)
         return self.get_values()
 
     def get_values(self):
