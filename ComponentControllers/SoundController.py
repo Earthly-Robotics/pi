@@ -13,6 +13,12 @@ class SoundController:
     listening = False
 
     def __init__(self):
+        self.diff_pre = 0.5
+        self.time_pre = 0.0
+        self.counter = 0
+        self.alpha = 0.8
+        self.n_buff = 8
+
         self.network_controller = None
         # self.params = config()
         # self.ip_address = self.params['ip_address']
@@ -27,11 +33,18 @@ class SoundController:
                                   channels=1,
                                   rate=self.RATE,
                                   input=True,
-                                  input_device_index=2,
                                   frames_per_buffer=self.CHUNK)  # uses default input device
 
-    def get_beat(self):
-        print('test')
+    def get_frequency(self):
+        """
+        Gets frequency
+        :return: frequency peak
+        """
+        # freq_peak = 0
+        # for i in range(self.p.get_device_count()):
+        #     dev = self.p.get_device_info_by_index(i)
+        #     print(self.p.get_device_info_by_index(i))
+        #     print((i, dev['name'], dev['maxInputChannels']))
         while self.listening:
             data = np.fromstring(self.stream.read(self.CHUNK, exception_on_overflow=False), dtype=np.int16)
             data = data * np.hanning(len(data))  # smooth the FFT by windowing data
@@ -39,11 +52,12 @@ class SoundController:
             fft = fft[:int(len(fft) / 2)]  # keep only first half
             freq = np.fft.fftfreq(self.CHUNK, 1.0 / self.RATE)
             freq = freq[:int(len(freq) / 2)]  # keep only first half
-            # freqMin = freq[np.where(fft == np.min(fft))[0][0]] + 1
-            freqPeak = freq[np.where(fft == np.max(fft))[0][0]] + 1
-            # print("freqency: %d Hz" % freq)
-            # print("min frequency: %d Hz" % freqMin)
-            print("peak frequency: %d Hz" % freqPeak)
+            freq_min = freq[np.where(fft == np.min(fft))[0][0]] + 1
+            freq_peak = freq[np.where(fft == np.max(fft))[0][0]] + 1
+            # print("frequency: %d Hz" % freq)
+            # print("min frequency: %d Hz" % freq_min)
+            print("peak frequency: %d Hz" % freq_peak)
+            return freq_peak
 
             # uncomment this if you want to see what the freq vs FFT looks like
             # plt.plot(freq,fft)
@@ -52,9 +66,59 @@ class SoundController:
             # plt.close()
 
         # close the stream gracefully
-        self.stream.stop_stream()
-        self.stream.close()
-        self.p.terminate()
+        # self.stream.stop_stream()
+        # self.stream.close()
+        # self.p.terminate()
+
+    def __reset(self):
+        self.counter = 0
+        self.diff_pre = 0.5
+        return 120
+
+    def __calc(self):
+        """
+        Calculates bpm
+        :return: bpm
+        """
+        time_cur = time.time()
+        if self.counter > 0:
+            diff = time_cur - self.time_pre
+            if diff > 3.0:
+                bpm = self.__reset()
+            else:
+                if diff > 1.0:
+                    diff = 1.0
+                elif diff < 0.20:
+                    diff = 0.20
+                diff = self.alpha * diff + \
+                       (1.0 - self.alpha) * self.diff_pre
+                bpm = 60 / diff
+                self.diff_pre = diff
+        else:
+            bpm = self.__reset()
+
+        self.time_pre = time_cur
+        return bpm
+
+    def bpm_count(self):
+        """
+        Gets bpm
+        :return: bpm
+        """
+        counter = self.counter
+        bpm = self.__calc()
+
+        idx = counter % self.n_buff
+        if counter == 0:
+            self.bpms = np.array([bpm for k in range(self.n_buff)])
+        else:
+            self.bpms[idx] = bpm
+        bpm_mean = int(np.mean(self.bpms) * 10) // 10
+
+        self.counter += 1
+        print("bpm_mean: " + str(bpm_mean))
+        print("counter: " + str(counter))
+        return bpm_mean  # , counter
 
     def stop_sending(self):
         self.stream.stop_stream()
