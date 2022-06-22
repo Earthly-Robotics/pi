@@ -14,7 +14,7 @@ class AutoSeedPlant:
 
     def calcDist(self,dist):
         # To Do: calc distance in sec between rows & seeds , cm to sec?
-        velocity = self.gyro_accelerometer.format_commponent_data();
+        velocity = self.gyro_accelerometer.format_commponent_data()
         cms = velocity * 27.777778
         sec = 1/(cms/dist)
         return sec
