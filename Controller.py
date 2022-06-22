@@ -8,12 +8,13 @@ from Logger.FileLogger import FileLogger
 from Network.NetworkController import NetworkController
 from ComponentControllers.ArduinoController import ArduinoController
 
-async def main():
-    # arduino_controller = arduino_setup()
-    # arduino_controller.close()
+from Components.AutoSeedPlant import AutoSeedPlant
+
+
+async def main(arduino_controller):
     thread = None
     try:
-        server = NetworkController()
+        server = NetworkController(arduino_controller)
         thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
     except KeyboardInterrupt:
@@ -21,12 +22,14 @@ async def main():
     finally:
         if thread is not None:
             thread.join()
+    #auto_seed_plant = AutoSeedPlant()
+    #auto_seed_plant.plant_seeds(2, 2, 30, 30)
 
 
 def arduino_setup():
     controller = ArduinoController()
     controller.connect()
-    asyncio.create_task(controller.read_message())
+    # asyncio.create_task(controller.read_message())
     return controller
 
 
@@ -40,10 +43,12 @@ if __name__ == "__main__":
             logger = FileLogger()
             logger.log("System not recognized")
     try:
-        asyncio.run(main())
+        arduino_controller = arduino_setup()
+        asyncio.run(main(arduino_controller))
     except KeyboardInterrupt:
         logger.log("Keyboard Interrupt!")
     except Exception as e:
         logger.log("Something went wrong in MAIN: {0}".format(e))
     finally:
+        arduino_controller.close()
         GPIO.cleanup()

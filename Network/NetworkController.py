@@ -22,7 +22,7 @@ from threading import Thread
 class NetworkController:
     threads = list()
 
-    def __init__(self):
+    def __init__(self, arduino_controller):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -44,9 +44,10 @@ class NetworkController:
         self.toggle_send_timeout_start = 0
         self.app_connected = False
 
+        self.arduino_controller = arduino_controller
         self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
-        self.auto_seed_plant = AutoSeedPlant()
+        self.auto_seed_plant = AutoSeedPlant(self, self.wheels_controller, self.accel_gyro_meter, self.arduino_controller)
 
     def __init_components(self):
         app_components = []
@@ -158,12 +159,12 @@ class NetworkController:
             case "SOLO_DANCE":
                 pass
             case "PLANT":
-                # To Do: get msg variables
+                # get msg variables
                 rows = message["r"]
                 seeds = message["s"]
                 row_dist = message["rd"]
                 seed_dist = message["sd"]
-                #go to blue block
+                # go to blue block
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
                     self.vision_controller.tracking))
@@ -172,8 +173,8 @@ class NetworkController:
                                  target=self.vision_controller.start_go_to_blue_cube,
                                  args=(self.client_address,)
                                  )
-                #start planting
-                AutoSeedPlant.plant_seeds(2, 2, 30, 30)  # rows, seeds, sec dist till next row, sec dist till next seed
+                # start planting
+                self.auto_seed_plant.plant_seeds(2, 2, 30, 30)  # rows, seeds, sec dist till next row, sec dist till next seed
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(

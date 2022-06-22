@@ -23,6 +23,14 @@ class GyroAccelerometer(AppComponent):
     def get_gyro_data(self):
         return self.sensor.get_gyro_data()
 
+    def calculate_velocity(self):
+        data = self.get_accel_data()
+        vel_x = self.initial_velocity + abs(float(data["x"])) * self.interval
+        vel_y = self.initial_velocity + abs(float(data["y"])) * self.interval
+        vel_z = self.initial_velocity + abs(float(data["z"])) * self.interval
+        self.velocity = ((vel_x + vel_y + vel_z) - 9.81) / (self.interval * 3)
+        return self.velocity
+
     def format_component_data(self) -> tuple:
         """
         Gets the data from the component and formats it for JSON Serialization.
@@ -30,9 +38,4 @@ class GyroAccelerometer(AppComponent):
         A tuple with an even amount of elements.
         Must be formatted as followed: "x", "x_value".
         """
-        data = self.get_accel_data()
-        vel_x = self.initial_velocity + abs(float(data["x"])) * self.interval
-        vel_y = self.initial_velocity + abs(float(data["y"])) * self.interval
-        vel_z = self.initial_velocity + abs(float(data["z"])) * self.interval
-        self.velocity = ((vel_x + vel_y + vel_z) - 9.81) / (self.interval * 3)
-        return "Velocity", str(round(self.velocity * 3.6, 2)) + " km/h"
+        return "Velocity", str(round(self.calculate_velocity() * 3.6, 2)) + " km/h"

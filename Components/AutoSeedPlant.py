@@ -1,3 +1,4 @@
+import time
 from time import sleep
 from ComponentControllers.WheelsController import WheelsController
 from Components.GyroAccelerometer import GyroAccelerometer
@@ -7,54 +8,56 @@ from ComponentControllers.ArduinoController import ArduinoController
 
 class AutoSeedPlant:
 
-    def __init__(self):
-        self.wheels_controller = WheelsController()
-        self.gyro_accelerometer = GyroAccelerometer()
-        self.arduino_controller = ArduinoController()
+    def __init__(self, network_controller, wheels_controller, gyro_accelerometer, arduino_controller):
+        self.wheels_controller = wheels_controller
+        self.gyro_accelerometer = gyro_accelerometer
+        self.arduino_controller = arduino_controller
 
-    def calc_dist(self,dist):
-        # To Do: calc distance in sec between rows & seeds , cm to sec?
-        velocity = self.gyro_accelerometer.format_commponent_data()
-        cms = velocity * 27.777778
+    # calc distance in sec between rows & seeds , cm to sec
+    def calc_dist(self, dist):
+        velocity = self.gyro_accelerometer.calculate_velocity() *3.6
+        cms = abs(float(velocity) * 27.777778)
         sec = 1/(cms/dist)
         return sec
 
-    def plant_seeds(self,rows,amount,rSpace,sSpace):
-        # To Do: space berekenen per sec
+    # plant seeds in grid
+    def plant_seeds(self, rows, amount, r_space, s_space):
         rows = rows
-        amountseeds = amount
-        rowspace = self.calc_dist(rSpace) # space in cm converted to sec
-        seedspace = self.calc_dist(sSpace)  # space in cm converted to sec
+        amount_seeds = amount
+        row_space = self.calc_dist(r_space) # space in cm converted to sec
+        seed_space = self.calc_dist(s_space)  # space in cm converted to sec
 
         for x in range(rows):
-            for y in range(amountseeds):
+            for y in range(amount_seeds):
                 self.wheels_controller.go_forward()
-                sleep(seedspace)
+                sleep(seed_space)
                 self.wheels_controller.stop()
                 # do servo plant thingy
-                self.arduino_controller.send_message("hopperTimed")
-
+                self.arduino_controller.send_message("hopper")
+                time.sleep(2)
             # turn around
             if (x % 2) == 0:
                 self.turn90("RIGHT")
                 self.wheels_controller.go_forward()
-                sleep(rowspace)
+                sleep(row_space)
                 self.turn90("RIGHT")
                 self.wheels_controller.stop()
             else:
                 self.turn90("LEFT")
                 self.wheels_controller.go_forward()
-                sleep(rowspace)
+                sleep(row_space)
                 self.turn90("LEFT")
                 self.wheels_controller.stop()
 
+    # get amount rotated
     def get_gyro_difference(self, start_gyro):
         start_gyro = start_gyro
-        current_gyro_y = abs(float(GyroAccelerometer.get_gyro_data()["y"])) #get gyro y data
+        current_gyro_y = abs(float(self.gyro_accelerometer.get_gyro_data()["y"])) #get gyro y data
         return start_gyro - current_gyro_y
 
-    def turn90(self,direction):
-        start_gyro_y = abs(float(GyroAccelerometer.get_gyro_data()["y"]))  # get start gyro y data
+    # turn 90 degrees left or right
+    def turn90(self, direction):
+        start_gyro_y = abs(float(self.gyro_accelerometer.get_gyro_data()["y"]))  # get start gyro y data
         turn_degrees = 90
 
         while True:
