@@ -19,8 +19,8 @@ async def main():
     server = None
     thread = None
     try:
-        server = NetworkController(arduino_controller)
-        # thread = threading.Thread(target=server.setup_server, daemon=True, args=(arduino_controller,))
+        # server = NetworkController(arduino_controller)
+        server = NetworkController()
         thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
     except KeyboardInterrupt:

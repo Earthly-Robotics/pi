@@ -21,7 +21,7 @@ class NetworkController:
     threads = list()
 
     # def __init__(self, arduino_controller):
-    def __init__(self, arduino_controller):
+    def __init__(self, arduino_controller=None):
         match platform.system():
             case "Windows":
                 self.params = config()
