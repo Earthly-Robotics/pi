@@ -12,29 +12,29 @@ class AutoSeedPlant:
         self.gyro_accelerometer = GyroAccelerometer()
         self.arduino_controller = ArduinoController()
 
-    def calcDist(self,dist):
+    def calc_dist(self,dist):
         # To Do: calc distance in sec between rows & seeds , cm to sec?
         velocity = self.gyro_accelerometer.format_commponent_data()
         cms = velocity * 27.777778
         sec = 1/(cms/dist)
         return sec
 
-    def plantSeeds(self,rows,amount,rSpace,sSpace):
+    def plant_seeds(self,rows,amount,rSpace,sSpace):
         # To Do: space berekenen per sec
         rows = rows
         amountseeds = amount
-        rowspace = self.calcDist(rSpace) #space in cm converted to sec
-        seedspace = self.calcDist(sSpace)  # space in cm converted to sec
+        rowspace = self.calc_dist(rSpace) # space in cm converted to sec
+        seedspace = self.calc_dist(sSpace)  # space in cm converted to sec
 
         for x in range(rows):
             for y in range(amountseeds):
                 self.wheels_controller.go_forward()
                 sleep(seedspace)
                 self.wheels_controller.stop()
-                #do servo plant thingy
+                # do servo plant thingy
                 self.arduino_controller.send_message("hopperTimed")
 
-            #turn around
+            # turn around
             if (x % 2) == 0:
                 self.turn90("RIGHT")
                 self.wheels_controller.go_forward()
@@ -48,7 +48,7 @@ class AutoSeedPlant:
                 self.turn90("LEFT")
                 self.wheels_controller.stop()
 
-    def getGyroDifference(self, start_gyro):
+    def get_gyro_difference(self, start_gyro):
         start_gyro = start_gyro
         current_gyro_y = abs(float(GyroAccelerometer.get_gyro_data()["y"])) #get gyro y data
         return start_gyro - current_gyro_y
@@ -63,6 +63,6 @@ class AutoSeedPlant:
                     self.wheels_controller.turn_right()
                 case "LEFT":
                     self.wheels_controller.turn_left()
-            gyro_difference = self.getGyroDifference(start_gyro_y)
+            gyro_difference = self.get_gyro_difference(start_gyro_y)
             if gyro_difference >= turn_degrees or gyro_difference >= turn_degrees * -1:
                 break

@@ -173,7 +173,7 @@ class NetworkController:
                                  args=(self.client_address,)
                                  )
                 #start planting
-                AutoSeedPlant.plantSeeds(rows, seeds, row_dist, seed_dist)  # rows, seeds, sec dist till next row, sec dist till next seed
+                AutoSeedPlant.plant_seeds(2, 2, 30, 30)  # rows, seeds, sec dist till next row, sec dist till next seed
             case "BLUE_BLOCK":
                 self.vision_controller.tracking = not self.vision_controller.tracking
                 self.logger.log("Received BLUE_BLOCK. Will it start sending? {0}".format(
