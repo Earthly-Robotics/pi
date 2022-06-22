@@ -6,37 +6,33 @@ class AutoSeedPlant:
 
     def __init__(self):
         self.wheels_controller = WheelsController()
-        self.rows = 10
-        self.distance_row = 5000;
-        self.seed_per_row = 5;
-        self.distance_between_row = 400;
+        self.planting = False
 
     def find_blue_block(self):
         # TODO find blue block
         return
 
-    def plant_seed(self):
+    def plant_seed(self, rows, distance_row, seed_per_row, distance_between_row):
         self.findBlueBlock()
-
-        for x in range(self.rows):
+        for x in range(rows):
             # Turn Right or Left, plant the seeds in the row, turn Right or Left again
             self.turn(x % 2 == 0)
-            self.plant_seed()
+            self.plant_seed(distance_row, seed_per_row)
             self.turn(x % 2 == 0)
             # Move distance_between_row
             cur_distance = 0
-            while cur_distance < self.distance_between_row:
+            while cur_distance < distance_between_row:
                 self.wheels_controller.move(0, 100, 50)
                 cur_distance += 1
 
             self.wheels_controller.stop()
 
-    def plant_seed(self):
+    def plant_seed(self, distance_row, seed_per_row):
         # TODO plant seed funtion here
-        for x in range(self.seed_per_row - 1):
+        for x in range(seed_per_row - 1):
             self.wheels_controller.move(0, 100, 50)
             cur_distance = 0
-            while cur_distance < self.seed_per_row / self.distance_row:
+            while cur_distance < seed_per_row / distance_row:
                 self.wheels_controller.stop()
                 cur_distance += 1
             # TODO plant seed funtion here

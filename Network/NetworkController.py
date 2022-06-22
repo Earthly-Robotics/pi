@@ -8,6 +8,7 @@ import RPi.GPIO as GPIO
 from CameraFeed import CameraFeed
 from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
+from Components.AutoSeedPlant import AutoSeedPlant
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
 from Components.GyroAccelerometer import GyroAccelerometer
@@ -53,6 +54,11 @@ class NetworkController:
 
     def __init_components(self):
         app_components = []
+        self.auto_seed_plant = self.__start_component(AutoSeedPlant,
+                                                    args=(self,))
+        if self.auto_seed_plant is not None:
+            app_components.append(self.auto_seed_plant)
+
         self.load_cell = self.__start_component(LoadCell,
                                                 args=(self,))
         if self.load_cell is not None:
@@ -185,7 +191,23 @@ class NetworkController:
             case "SOLO_DANCE":
                 pass
             case "PLANT":
-                pass
+                if self.auto_seed_plant is None:
+                    self.logger.log("Can't process PLANT. Auto_Seed_Plant is None")
+                    return
+                # rows, distance_row, seed_per_row, distance_between_row
+                rows = message["Rows"]
+                distance_row = message["Distance_Row"]
+                seed_per_row = message["Seed_Per_Row"]
+                distance_between_row = message["Distance_Between_Row"]
+                self.toggle_send(sending=self.auto_seed_plant.planting,
+                                 thread_name="PLANT",
+                                 target=self.auto_seed_plant.plant_seed,
+                                 args=(rows,distance_row,seed_per_row,distance_between_row,)
+                                 )
+                data = json.dumps({
+                    "MT": "PLANT"
+                })
+                self.send_message(data.encode(), self.client_address)
             case "BLUE_BLOCK":
                 if self.vision_controller is None:
                     self.logger.log("Can't process BLUE_BLOCK. Vision_Controller is None")
