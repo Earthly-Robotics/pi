@@ -24,7 +24,7 @@ class SoundController:
         # self.ip_address = self.params['ip_address']
         # self.port = int(self.params['port'])
         np.set_printoptions(suppress=True)  # don't use scientific notation
-        self.listening = True
+        self.sending = True
         self.CHUNK = 4096  # number of data points to read at a time
         self.RATE = 44100  # time resolution of the recording device (Hz)
 
@@ -40,12 +40,8 @@ class SoundController:
         Gets frequency
         :return: frequency peak
         """
-        # freq_peak = 0
-        # for i in range(self.p.get_device_count()):
-        #     dev = self.p.get_device_info_by_index(i)
-        #     print(self.p.get_device_info_by_index(i))
-        #     print((i, dev['name'], dev['maxInputChannels']))
-        while self.listening:
+
+        while self.sending:
             data = np.fromstring(self.stream.read(self.CHUNK, exception_on_overflow=False), dtype=np.int16)
             data = data * np.hanning(len(data))  # smooth the FFT by windowing data
             fft = abs(np.fft.fft(data).real)
@@ -64,11 +60,6 @@ class SoundController:
             # plt.axis([0,4000,None,None])
             # plt.show()
             # plt.close()
-
-        # close the stream gracefully
-        # self.stream.stop_stream()
-        # self.stream.close()
-        # self.p.terminate()
 
     def __reset(self):
         self.counter = 0
@@ -124,4 +115,4 @@ class SoundController:
         self.stream.stop_stream()
         self.stream.close()
         self.p.terminate()
-        self.listening = False
+        self.sending = False

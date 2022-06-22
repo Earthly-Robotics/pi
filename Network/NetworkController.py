@@ -6,6 +6,7 @@ import time
 import RPi.GPIO as GPIO
 
 from CameraFeed import CameraFeed
+from ComponentControllers.DanceController import DanceController
 from ComponentControllers.SoundController import SoundController
 from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
@@ -48,9 +49,10 @@ class NetworkController:
         self._enabled = True
 
         self.sound_controller = SoundController()
-        self.wheels_controller = WheelsController()
         self.arduino_controller = arduino_controller
         self.servo_controller = ServoController(arduino_controller)
+        self.wheels_controller = WheelsController(self.servo_controller)
+        self.dance_controller = DanceController(self.sound_controller, self.wheels_controller, self.arduino_controller)
         self.app_components = self.__init_components()
 
     def __init_components(self):
@@ -184,9 +186,43 @@ class NetworkController:
                 data = json.dumps(ping)
                 self.send_message(data.encode(), self.client_address)
             case "LINE_DANCE":
-                pass
+                if self.camera is None:
+                    self.logger.log("Can't process LINE_DANCE. Camera is None")
+                    return
+                self.dance_controller.sending = not self.dance_controller.sending
+                if self.dance_controller.sending:
+                    self.dance_controller = self.dance_controller.line_dance()
+                else:
+                    self.dance_controller = self.dance_controller.stop_sending()
+                self.logger.log("Received LINE_DANCE")
+                data = json.dumps({
+                    "MT": "LINE_DANCE"
+                })
+                self.send_message(data.encode(), self.client_address)
+                # self.toggle_send(sending=self.dance_controller.sending,
+                #                  thread_name=self.dance_controller.msg_type,
+                #                  target=self.dance_controller.update_app_data,
+                #                  args=(self.client_address,)
+                #                  )
             case "SOLO_DANCE":
-                pass
+                if self.camera is None:
+                    self.logger.log("Can't process SOLO_DANCE. Camera is None")
+                    return
+                self.dance_controller.sending = not self.dance_controller.sending
+                if self.dance_controller.sending:
+                    self.dance_controller = self.dance_controller.solo_dance()
+                else:
+                    self.dance_controller = self.dance_controller.stop_sending()
+                self.logger.log("Received SOLO_DANCE")
+                data = json.dumps({
+                    "MT": "SOLO_DANCE"
+                })
+                self.send_message(data.encode(), self.client_address)
+                # self.toggle_send(sending=self.dance_controller.sending,
+                #                  thread_name=self.dance_controller.msg_type,
+                #                  target=self.dance_controller.update_app_data,
+                #                  args=(self.client_address,)
+                #                  )
             case "PLANT":
                 pass
             case "BLUE_BLOCK":
@@ -328,7 +364,6 @@ class NetworkController:
         self.__stop_components()
         GPIO.cleanup()
         self.wheels_controller.reset_motors()
-        self.wheels_controller = WheelsController()
         self.app_components = self.__init_components()
         self.app_connected = False
 
