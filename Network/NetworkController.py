@@ -8,6 +8,7 @@ import RPi.GPIO as GPIO
 from CameraFeed import CameraFeed
 from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
+from Components.AutoSeedPlant import AutoSeedPlant
 from Components.Camera import Camera
 from Components.LoadCell import LoadCell
 from Components.GyroAccelerometer import GyroAccelerometer
@@ -21,7 +22,7 @@ class NetworkController:
     threads = list()
 
     # def __init__(self, arduino_controller):
-    def __init__(self, arduino_controller):
+    def __init__(self, arduino_controller=None):
         match platform.system():
             case "Windows":
                 self.params = config()
@@ -53,6 +54,11 @@ class NetworkController:
 
     def __init_components(self):
         app_components = []
+        self.auto_seed_plant = self.__start_component(AutoSeedPlant,
+                                                    args=(self.wheels_controller, ))
+        if self.auto_seed_plant is not None:
+            app_components.append(self.auto_seed_plant)
+
         self.load_cell = self.__start_component(LoadCell,
                                                 args=(self,))
         if self.load_cell is not None:
@@ -185,7 +191,27 @@ class NetworkController:
             case "SOLO_DANCE":
                 pass
             case "PLANT":
-                pass
+                if self.auto_seed_plant is None:
+                    self.logger.log("Can't process PLANT. Auto_Seed_Plant is None")
+                    return
+                self.auto_seed_plant.planting = not self.auto_seed_plant.planting
+                self.logger.log("Received PLANT.")
+                rows = 10
+                distance_row = 200
+                seed_per_row = 2
+                distance_between_row = 50
+                corner_distance = 11
+                self.logger.log("Received DATA.")
+                self.toggle_send(sending=self.auto_seed_plant.planting,
+                                 thread_name="PLANT",
+                                 target=self.auto_seed_plant.plant_seed,
+                                 args=(rows,distance_row,seed_per_row,distance_between_row,corner_distance)
+                                 )
+                self.logger.log("Started thread PLANT.")
+                data = json.dumps({
+                    "MT": "PLANT"
+                })
+                self.send_message(data.encode(), self.client_address)
             case "BLUE_BLOCK":
                 if self.vision_controller is None:
                     self.logger.log("Can't process BLUE_BLOCK. Vision_Controller is None")
