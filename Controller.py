@@ -12,7 +12,6 @@ from Logger.FileLogger import FileLogger
 
 async def main():
     arduino_controller = arduino_setup()
-    # arduino_controller = None
     # arduino_controller.close()
     server = None
     thread = None
