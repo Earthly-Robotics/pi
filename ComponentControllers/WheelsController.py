@@ -90,7 +90,7 @@ class WheelsController:
         # Bottom right of middle
         elif x > deadzone_max and y < deadzone_min:
             # calculates the percentage of x based on how far it is from the max_value. If x is equal to max-value, per_x is 100%.
-            per_x = math.floor((x - deadzone_max) / (max_value - deadzone_max) * 100) * -1
+            per_x = math.floor((x - deadzone_max) / (max_value - deadzone_max) * 100)
             # calculates the percentage of y based on how far it is from the min_value. If y is equal to min-value, per_y is 100%.
             per_y = math.floor((y - deadzone_min) / (-1 * min_value + deadzone_min) * 100)
             self.angle = 90 - math.floor(calculate_angle(x, y, 0, -2047))
@@ -98,7 +98,7 @@ class WheelsController:
         # Bottom left of middle
         elif x < deadzone_min and y < deadzone_min:
             # calculates the percentage of x based on how far it is from the min_value. If x is equal to min-value, per_x is 100%.
-            per_x = math.floor((x - deadzone_min) / (-1 * min_value + deadzone_min) * 100) * -1
+            per_x = math.floor((x - deadzone_min) / (-1 * min_value + deadzone_min) * 100)
             # calculates the percentage of y based on how far it is from the min_value. If y is equal to min-value, per_y is 100%.
             per_y = math.floor((y - deadzone_min) / (-1 * min_value + deadzone_min) * 100)
             self.angle = math.floor(90 - calculate_angle(x, y, 0, -2047))

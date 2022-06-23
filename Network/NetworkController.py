@@ -7,7 +7,6 @@ import threading
 import time
 import RPi.GPIO as GPIO
 
-from CameraFeed import CameraFeed
 from ComponentControllers.DanceController import DanceController
 from ComponentControllers.SoundController import SoundController
 from ComponentControllers.ServoController import ServoController
@@ -57,6 +56,7 @@ class NetworkController:
         self.arduino_controller = arduino_controller
         self.servo_controller = ServoController(arduino_controller)
         self.wheels_controller = WheelsController(self.servo_controller)
+        self.wheels_controller.stop()
         self.dance_controller = DanceController(self.sound_controller, self.wheels_controller, self.arduino_controller)
         self.app_components = self.__init_components()
 
@@ -72,15 +72,21 @@ class NetworkController:
         if self.load_cell is not None:
             app_components.append(self.load_cell)
 
+        self.accel_gyro_meter = self.__start_component(GyroAccelerometer,
+                                                       args=(self,))
+        if self.accel_gyro_meter is not None:
+            app_components.append(self.accel_gyro_meter)
+
         self.camera = self.__start_component(Camera, args=(self,))
         self.vision_controller = None
-
         if self.camera is not None:
             app_components.append(self.camera)
             self.vision_controller = self.__start_component(VisionController,
                                                             args=(self.camera,
                                                                   self.wheels_controller,
                                                                   self))
+            if self.vision_controller is not None:
+                app_components.append(self.vision_controller)
         return app_components
 
     def __start_component(self, comp, args=()):
