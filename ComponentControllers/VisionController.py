@@ -29,10 +29,9 @@ class VisionController:
     error = 0
     cam_half_width = 0
 
-    def __init__(self, cam, wheels_controller=None, network_controller=None):
-        self._img = None
-        self.cam = cam
+    def __init__(self, cam, wheels_controller, network_controller):
         self.client_ip = None
+        self.cam = cam
         self.wheels_controller = wheels_controller
         self.network_controller = network_controller
         if self.cam is not None:
@@ -87,9 +86,6 @@ class VisionController:
                     self.error = abs(min(self.error, 50))
                     self.wheels_controller.turn_left(self.error)
                 await task
-
-    def get_debug_image(self):
-        return self._img
 
     async def send_feed(self, img):
         _, data = cv.imencode('.jpg', img, [cv.IMWRITE_JPEG_QUALITY, 50])

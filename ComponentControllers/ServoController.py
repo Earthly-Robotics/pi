@@ -3,6 +3,7 @@ from Utility import calculate_percentage
 
 class ServoController:
 
+# initialise the servos that need to work on joysticks
     arm = {
         "ID": "onderarm",
         "POS": 150
@@ -16,13 +17,16 @@ class ServoController:
         "POS": 150
     }
 
+# put servo in list
     servo_list = [arm, wiel1, wiel2]
 
+# standard values
     def __init__(self, arduino_controller):
         self.arduino_controller = arduino_controller
         self.max_degrees = 150
         self.min_degrees = -150
 
+# function to open and close magnet
     def control_magnet(self, magnet_status):
         if self.arduino_controller is None:
             return
@@ -50,6 +54,7 @@ class ServoController:
                 current_deg = self.servo_list[2]
                 new_degrees * -1
                 current_deg["POS"] = new_degrees
+                # send string to arduino
                 self.arduino_controller.send_message(str.format("{0};{1}", current_deg["ID"], current_deg["POS"]))
 
         elif profile == 1:
