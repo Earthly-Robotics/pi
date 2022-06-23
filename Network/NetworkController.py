@@ -63,7 +63,7 @@ class NetworkController:
     def __init_components(self):
         app_components = []
         self.auto_seed_plant = self.__start_component(AutoSeedPlant,
-                                                      args=(self.wheels_controller, ))
+                                                      args=(self.wheels_controller, self.arduino_controller ))
         if self.auto_seed_plant is not None:
             app_components.append(self.auto_seed_plant)
 
@@ -233,12 +233,18 @@ class NetworkController:
                     self.logger.log("Can't process PLANT. Auto_Seed_Plant is None")
                     return
                 self.auto_seed_plant.planting = not self.auto_seed_plant.planting
+                rows = 0
+                distance_row = 0
+                seed_per_row = 0
+                distance_between_row = 0
+                corner_distance = 0
                 self.logger.log("Received PLANT.")
-                rows = 10
-                distance_row = 200
-                seed_per_row = 2
-                distance_between_row = 50
-                corner_distance = 11
+                if self.auto_seed_plant.planting:
+                    rows = 6
+                    distance_row = int(message["Distance_Row"])
+                    seed_per_row = int(message["Seed_Per_Row"])
+                    distance_between_row = int(message["Distance_Between_Row"])
+                    corner_distance = int(message["Corner_Distance"])
                 self.logger.log("Received DATA.")
                 self.toggle_send(sending=self.auto_seed_plant.planting,
                                  thread_name="PLANT",
