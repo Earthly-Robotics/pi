@@ -7,7 +7,6 @@ import threading
 import time
 import RPi.GPIO as GPIO
 
-from CameraFeed import CameraFeed
 from ComponentControllers.ServoController import ServoController
 from ComponentControllers.VisionController import VisionController
 from Components.AutoSeedPlant import AutoSeedPlant
@@ -59,7 +58,7 @@ class NetworkController:
     def __init_components(self):
         app_components = []
         self.auto_seed_plant = self.__start_component(AutoSeedPlant,
-                                                    args=(self.wheels_controller, ))
+                                                      args=(self.wheels_controller, ))
         if self.auto_seed_plant is not None:
             app_components.append(self.auto_seed_plant)
 
@@ -67,9 +66,6 @@ class NetworkController:
                                                 args=(self,))
         if self.load_cell is not None:
             app_components.append(self.load_cell)
-
-        self.load_cell = LoadCell(network_controller=self)
-        app_components.append(self.load_cell)
 
         self.camera = self.__start_component(Camera, args=(self,))
         self.vision_controller = None
@@ -80,14 +76,15 @@ class NetworkController:
                                                             args=(self.camera,
                                                                   self.wheels_controller,
                                                                   self))
-            if self.vision_controller is not None:
-                app_components.append(self.vision_controller)
-                self.camera_feed = self.__start_component(CameraFeed,
-                                                          args=(self,
-                                                                self.vision_controller))
-                if self.camera_feed is not None:
-                    app_components.append(self.camera_feed)
         return app_components
+
+    def __start_component(self, comp, args=()):
+        try:
+            result = comp(*args)
+        except Exception as e:
+            result = None
+            self.logger.log("\nCould not start %s:\n%s\n" % (comp.__name__, e))
+        return result
 
     def setup_server(self):
         """
@@ -140,8 +137,9 @@ class NetworkController:
                 p = message["p"]
                 if self.profile != p:
                     self.profile = p
-                LJ_thread = threading.Thread(target=self.wheels_controller.get_percentage, args=(x, y, self.limiter), daemon=True)
-                LJ_thread.start()
+                thread = threading.Thread(target=self.wheels_controller.get_percentage,
+                                          args=(x, y, self.limiter), daemon=True)
+                thread.start()
             case "RJ":
                 pass
                 y = message["y"]
@@ -200,7 +198,7 @@ class NetworkController:
                 self.toggle_send(sending=self.auto_seed_plant.planting,
                                  thread_name="PLANT",
                                  target=self.auto_seed_plant.plant_seed,
-                                 args=(rows,distance_row,seed_per_row,distance_between_row,corner_distance)
+                                 args=(rows, distance_row, seed_per_row, distance_between_row, corner_distance)
                                  )
                 self.logger.log("Started thread PLANT.")
                 data = json.dumps({
@@ -253,7 +251,7 @@ class NetworkController:
                 #                  target=self.camera_feed.update_app_data,
                 #                  args=(self.client_address,))
 
-        #TODO: uncomment this
+        # TODO: uncomment this
 
         # match (message["MT"]):
         #     case "LJ":

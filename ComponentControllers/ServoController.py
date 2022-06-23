@@ -2,8 +2,7 @@ from Utility import calculate_percentage
 
 
 class ServoController:
-
-# initialise the servos that need to work on joysticks
+    # initialise the servos that need to work on joysticks
     arm = {
         "ID": "onderarm",
         "POS": 150
@@ -17,24 +16,22 @@ class ServoController:
         "POS": 150
     }
 
-# put servo in list
+    # put servo in list
     servo_list = [arm, wiel1, wiel2]
 
-# standard values
+    # standard values
     def __init__(self, arduino_controller):
         self.arduino_controller = arduino_controller
         self.max_degrees = 150
         self.min_degrees = -150
 
-# function to open and close magnet
+    # function to open and close magnet
     def control_magnet(self, magnet_status):
         if self.arduino_controller is None:
             return
         if magnet_status is False:
-            magnet_status = True
             self.arduino_controller.send_message("magnet;30")
         else:
-            magnet_status = False
             self.arduino_controller.send_message("magnet;-30")
 
     def power_servo(self, y, profile):
@@ -44,9 +41,9 @@ class ServoController:
         if profile == 0:
 
             # vanwege tandwielen x2
-            power = result/30
+            power = result / 30
             current_deg = self.servo_list[1]
-            new_degrees = (current_deg["POS"] + power)*2
+            new_degrees = (current_deg["POS"] + power) * 2
             current_deg["POS"] = new_degrees
             if 150 > new_degrees > -150:
                 self.arduino_controller.send_message(str.format("{0};{1}", current_deg["ID"], current_deg["POS"]))

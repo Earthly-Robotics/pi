@@ -72,5 +72,4 @@ class Camera(AppComponent):
             return None
         _, buffer = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 50])
         buffer = base64.b64encode(buffer).decode()
-        self.interval = max(1. / 24 - (time.time() - start), 0)
         return "Camera", buffer

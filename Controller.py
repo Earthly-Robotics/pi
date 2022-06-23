@@ -11,8 +11,8 @@ from Logger.FileLogger import FileLogger
 
 
 async def main():
-    # arduino_controller = arduino_setup()
-    arduino_controller = None
+    arduino_controller = arduino_setup()
+    # arduino_controller = None
     # arduino_controller.close()
     server = None
     thread = None
@@ -29,6 +29,7 @@ async def main():
         if thread is not None:
             thread.join()
             arduino_controller.close()
+
 
 def arduino_setup():
     controller = ArduinoController()

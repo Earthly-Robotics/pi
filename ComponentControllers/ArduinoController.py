@@ -1,4 +1,6 @@
-import serial, time, asyncio
+import serial
+import time
+import asyncio
 from Logger.ConsoleLogger import ConsoleLogger
 
 

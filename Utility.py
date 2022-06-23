@@ -23,11 +23,11 @@ def calculate_percentage(y):
     """
     # forwards
     if 0 < y <= 2047:
-        percentage_pos = math.floor(((y) / 2047) * 100)
+        percentage_pos = math.floor((y / 2047) * 100)
         output = math.floor(percentage_pos)
     # backwards
     elif -400 > y >= -2047:
         percentage_pos = math.floor(((y + 400) / 1647) * 100)
         output = math.floor(percentage_pos)
 
-        return output
+    return output
