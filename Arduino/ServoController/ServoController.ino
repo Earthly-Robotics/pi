@@ -149,7 +149,7 @@ void moveServo()
         returnString += " SPINNING THE HOPPER SPEED: ";
         returnString += String(speed);
         ax12a.turn(id, LEFT, speed);
-        delay(1000);
+        delay(500);
         ax12a.turn(id, LEFT, 0);
         return;
     }
