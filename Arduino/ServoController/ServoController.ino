@@ -6,8 +6,7 @@
 #define BaudRate (1000000ul)
 
 #define MAGNET (22)      // magnet servo
-#define HOPPER (13)      // hopper servo
-#define TEST (1)         // test ervo
+#define HOPPER (1)       // hopper servo
 #define ARM (69)         // arm servo
 #define RIGHT_WHEEL (61) // right wheel servo
 #define LEFT_WHEEL (10)  // left wheel servo
@@ -25,6 +24,7 @@ String servo;
 int id;
 int graden;
 String command;
+String returnString = "";
 
 // standard speed value
 int speed = 200;
@@ -34,7 +34,7 @@ void setup()
 {
   softwareSerial.begin(9600);
   ax12a.begin(BaudRate, DirectionPin, &Serial);
-  // ax12a.setEndless(1, OFF);
+  ax12a.setEndless(HOPPER, ON);
 }
 
 // start loop
@@ -42,100 +42,11 @@ void loop()
 {
   readSerialPort();
   softwareSerial.flush();
-
-  if (msg != "")
+  if(returnString != "")
   {
-    splitString();
-
-    // Initialise the right id based on the string that was given
-    if (servo == "hopper")
-    {
-      id = HOPPER;
-      softwareSerial.print(" hopper servo ");
-    }
-    else if (servo == "magnet")
-    {
-      id = MAGNET;
-      softwareSerial.print(" magnet servo ");
-    }
-    else if (servo == "test")
-    {
-      id = TEST;
-      softwareSerial.print(" test servo ");
-    }
-    else if (servo == "arm")
-    {
-      id = ARM;
-      softwareSerial.print(" arm servo ");
-    }
-    else if (servo == "right_wheel")
-    {
-      id = RIGHT_WHEEL;
-      softwareSerial.print(" right wheel servo ");
-    }
-    else if (servo == "left_wheel")
-    {
-      id = LEFT_WHEEL;
-      softwareSerial.print(" left wheel servo ");
-    }
-    else if (servo == "back_wheel")
-    {
-      id = BACK_WHEEL;
-      softwareSerial.print(" back_wheel servo ");
-    }
-    else
-    {
-      softwareSerial.print("Servo not recognized: " + servo);
-      delay(500);
-      return;
-    }
-
-    // If there are degrees given move servo to the given degrees
-    if (graden != NULL)
-    {
-      // servo is not allowed to turn further than than 30 deg both ways
-      if (servo == "magnet")
-      {
-        if (graden > 30 || graden < -30)
-        {
-          softwareSerial.print("Graden was " + graden);
-          softwareSerial.print(" which is not between the bounds -30 and 30");
-          return;
-        }
-      }
-      else if (servo == "back_wheel")
-      {
-        graden += 40;
-      }
-      else if (servo == "right_wheel")
-      {
-        graden *= -1;
-      }
-
-      softwareSerial.print(" Graden: " + graden);
-      ax12a.move(id, convertDegrees(graden));
-    }
-    else if (graden == 0)
-    {
-      graden = 512;
-      if (servo == "back_wheel")
-      {
-        graden = convertDegrees(40);
-      }
-      softwareSerial.print(" NUL Graden: " + graden);
-      ax12a.move(id, graden);
-    }
-    else if (servo == "hopper")
-    {
-      // make spin
-      ax12a.setEndless(id, ON);
-      ax12a.turn(id, LEFT, speed);
-    }
-    else
-    {
-      softwareSerial.print("SOMETHING WENT WRONG!");
-    }
+    softwareSerial.print(returnString);
   }
+    returnString = "";
   delay(500);
 }
 
@@ -147,9 +58,14 @@ void readSerialPort()
   {
     delay(10);
     char input = (char)softwareSerial.read();
-    if (input == '\n')
+    if (softwareSerial.available() == 0){
+        msg += input;
+    }
+    if (input == '~' || softwareSerial.available() == 0)
     {
-      return;
+        moveServo();
+        msg = "";
+        continue;
     }
     msg += input;
   }
@@ -170,7 +86,6 @@ void splitString()
 {
   int index = msg.indexOf(';');
   servo = msg.substring(0, index);
-  softwareSerial.print(msg);
   String input2 = msg.substring(index + 1, msg.length());
 
   if (servo == "hopper")
@@ -181,4 +96,101 @@ void splitString()
   {
     graden = input2.toInt();
   }
+}
+
+void moveServo()
+{
+    splitString();
+    returnString += " STARTING SERVO MOVEMENT ";
+    // Initialise the right id based on the string that was given
+    if (servo == "hopper")
+    {
+      id = HOPPER;
+      returnString += "hopper";
+    }
+    else if (servo == "magnet")
+    {
+      id = MAGNET;
+      returnString += "magnet";
+    }
+    else if (servo == "arm")
+    {
+      id = ARM;
+      returnString += "arm";
+    }
+    else if (servo == "right_wheel")
+    {
+      id = RIGHT_WHEEL;
+      returnString += "right wheel";
+    }
+    else if (servo == "left_wheel")
+    {
+      id = LEFT_WHEEL;
+      returnString += "left_wheel";
+    }
+    else if (servo == "back_wheel")
+    {
+      id = BACK_WHEEL;
+      returnString += "back wheel";
+    }
+    else
+    {
+    returnString += " Servo not recognized ";
+    returnString += servo;
+      return;
+    }
+    returnString += " ID = ";
+    returnString += String(id);
+
+    // If there are degrees given move servo to the given degrees
+    if (servo == "hopper")
+    {
+      // make spin
+        returnString += " SPINNING THE HOPPER SPEED: ";
+        returnString += String(speed);
+        ax12a.turn(id, LEFT, speed);
+        delay(1000);
+        ax12a.turn(id, LEFT, 0);
+        return;
+    }
+    else if (graden != NULL)
+    {
+      // servo is not allowed to turn further than than 30 deg both ways
+      if (servo == "magnet")
+      {
+        if (graden > 30 || graden < -30)
+        {
+            returnString += " Graden was ";
+            returnString += String(graden);
+            returnString += " which is not between the bounds -30 and 30";
+          return;
+        }
+      }
+      else if (servo == "back_wheel")
+      {
+        graden += 40;
+      }
+      else if (servo == "right_wheel")
+      {
+        graden *= -1;
+      }
+        returnString += " Graden was ";
+        returnString += String(graden);
+        ax12a.move(id, convertDegrees(graden));
+    }
+    else if (graden == 0)
+    {
+      graden = 512;
+      if (servo == "back_wheel")
+      {
+        graden = convertDegrees(40);
+      }
+        returnString += " Graden was NUL: ";
+        returnString += String(graden);
+        ax12a.move(id, graden);
+    }
+    else
+    {
+        returnString += "SOMETHING WENT WRONG!";
+    }
 }

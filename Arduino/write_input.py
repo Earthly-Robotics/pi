@@ -8,7 +8,8 @@ if __name__ == '__main__':
             try:
                 while True:
                     cmd=input("Enter command : ")
-                    arduino.write(cmd.encode())
+                    bytes = cmd.encode()
+                    arduino.write(bytes)
                     time.sleep(0.1) #wait for arduino to answer
                     while arduino.in_waiting == 0:
                         #print(arduino.in_waiting)
