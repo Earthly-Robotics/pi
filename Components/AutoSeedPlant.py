@@ -5,8 +5,9 @@ from Logger.ConsoleLogger import ConsoleLogger
 
 class AutoSeedPlant:
 
-    def __init__(self, wheels_controller=None):
+    def __init__(self, wheels_controller=None, arduino_controller=None):
         self.wheels_controller = wheels_controller
+        self.arduino_controller = arduino_controller
         self.logger = ConsoleLogger()
         self.stop = 20
         self.planting = False
@@ -27,16 +28,19 @@ class AutoSeedPlant:
                 self.wheels_controller.move(0, 100, 2)
             for y in range(self.stop):
                 self.wheels_controller.stop()
-        self.planting = False
 
     def plant_row_seed(self, distance_row, seed_per_row):
-        # TODO plant seed funtion here
+        self.arduino_controller.send_message("hopper;490")
+        for y in range(self.stop * 2):
+            self.wheels_controller.stop()
         for x in range(seed_per_row - 1):
             for y in range(int(int(distance_row / 4) / (seed_per_row - 1))):
                 self.wheels_controller.move(0, 100, 2)
             for y in range(self.stop):
                 self.wheels_controller.stop()
-            # TODO plant seed funtion here
+            self.arduino_controller.send_message("hopper;490")
+            for y in range(self.stop * 2):
+                self.wheels_controller.stop()
 
     def turn(self, corner_distance, right):
         if right:
