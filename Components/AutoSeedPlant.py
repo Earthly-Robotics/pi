@@ -1,54 +1,54 @@
 import time
 from ComponentControllers.WheelsController import WheelsController
+from Logger.ConsoleLogger import ConsoleLogger
 
 
 class AutoSeedPlant:
 
-    def __init__(self):
-        self.wheels_controller = WheelsController()
+    def __init__(self, wheels_controller=None):
+        self.wheels_controller = wheels_controller
+        self.logger = ConsoleLogger()
+        self.stop = 20
         self.planting = False
 
     def find_blue_block(self):
         # TODO find blue block
         return
 
-    def plant_seed(self, rows, distance_row, seed_per_row, distance_between_row):
-        self.findBlueBlock()
+    def plant_seed(self, rows, distance_row, seed_per_row, distance_between_row, corner_distance):
+        #self.findBlueBlock()
         for x in range(rows):
             # Turn Right or Left, plant the seeds in the row, turn Right or Left again
-            self.turn(x % 2 == 0)
-            self.plant_seed(distance_row, seed_per_row)
-            self.turn(x % 2 == 0)
+            self.turn(corner_distance, x % 2 == 0)
+            self.plant_row_seed(distance_row, seed_per_row)
+            self.turn(corner_distance, x % 2 == 1)
             # Move distance_between_row
-            cur_distance = 0
-            while cur_distance < distance_between_row:
-                self.wheels_controller.move(0, 100, 50)
-                cur_distance += 1
+            for y in range(int(distance_between_row / 4)):
+                self.wheels_controller.move(0, 100, 2)
+            for y in range(self.stop):
+                self.wheels_controller.stop()
+        self.planting = False
 
-            self.wheels_controller.stop()
-
-    def plant_seed(self, distance_row, seed_per_row):
+    def plant_row_seed(self, distance_row, seed_per_row):
         # TODO plant seed funtion here
         for x in range(seed_per_row - 1):
-            self.wheels_controller.move(0, 100, 50)
-            cur_distance = 0
-            while cur_distance < seed_per_row / distance_row:
+            for y in range(int(int(distance_row / 4) / (seed_per_row - 1))):
+                self.wheels_controller.move(0, 100, 2)
+            for y in range(self.stop):
                 self.wheels_controller.stop()
-                cur_distance += 1
             # TODO plant seed funtion here
 
-    def turn(self, right):
+    def turn(self, corner_distance, right):
         if right:
-            self.wheels_controller.turn_right(50)
-            cur_distance = 0
-            while cur_distance < 800:
+            for x in range(corner_distance):
+                self.wheels_controller.turn_right(50)
+            for x in range(self.stop):
                 self.wheels_controller.stop()
-                cur_distance += 1
-            self.wheels_controller.stop()
         else:
-            self.wheels_controller.turn_left(50)
-            cur_distance = 0
-            while cur_distance < 800:
+            for x in range(corner_distance):
+                self.wheels_controller.turn_left(50)
+            for x in range(self.stop):
                 self.wheels_controller.stop()
-                cur_distance += 1
-            self.wheels_controller.stop()
+
+    def stop_sending(self):
+        self.planting = False

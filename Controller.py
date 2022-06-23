@@ -15,12 +15,13 @@ from Logger.FileLogger import FileLogger
 
 async def main():
     # arduino_controller = arduino_setup()
+    arduino_controller = None
     # arduino_controller.close()
     server = None
     thread = None
     try:
-        # server = NetworkController(arduino_controller)
-        server = NetworkController()
+        server = NetworkController(arduino_controller)
+        # server = NetworkController()
         thread = threading.Thread(target=server.setup_server, daemon=True)
         thread.start()
     except KeyboardInterrupt:

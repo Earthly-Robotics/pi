@@ -55,7 +55,7 @@ class NetworkController:
     def __init_components(self):
         app_components = []
         self.auto_seed_plant = self.__start_component(AutoSeedPlant,
-                                                    args=(self,))
+                                                    args=(self.wheels_controller, ))
         if self.auto_seed_plant is not None:
             app_components.append(self.auto_seed_plant)
 
@@ -194,16 +194,20 @@ class NetworkController:
                 if self.auto_seed_plant is None:
                     self.logger.log("Can't process PLANT. Auto_Seed_Plant is None")
                     return
-                # rows, distance_row, seed_per_row, distance_between_row
-                rows = message["Rows"]
-                distance_row = message["Distance_Row"]
-                seed_per_row = message["Seed_Per_Row"]
-                distance_between_row = message["Distance_Between_Row"]
+                self.auto_seed_plant.planting = not self.auto_seed_plant.planting
+                self.logger.log("Received PLANT.")
+                rows = 10
+                distance_row = 200
+                seed_per_row = 2
+                distance_between_row = 50
+                corner_distance = 11
+                self.logger.log("Received DATA.")
                 self.toggle_send(sending=self.auto_seed_plant.planting,
                                  thread_name="PLANT",
                                  target=self.auto_seed_plant.plant_seed,
-                                 args=(rows,distance_row,seed_per_row,distance_between_row,)
+                                 args=(rows,distance_row,seed_per_row,distance_between_row,corner_distance)
                                  )
+                self.logger.log("Started thread PLANT.")
                 data = json.dumps({
                     "MT": "PLANT"
                 })
